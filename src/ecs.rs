@@ -83,6 +83,7 @@ impl World {
 		if entity >= self.number_of_entities {
 			return Err(Box::new(EntityNotFoundError { entity }) as Box<dyn std::error::Error>);
 		}
+
 		let mut components = self
 			.components
 			.entry(TypeId::of::<T>())
@@ -97,6 +98,7 @@ impl World {
 				components.insert(entity, Some(Box::new(component)));
 			},
 		};
+
 		Ok(())
 	}
 
