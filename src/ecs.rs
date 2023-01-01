@@ -80,6 +80,15 @@ impl World {
 	}
 
 	pub fn add_component<T: 'static>(&mut self, entity: Entity, component: T) -> Result<()> {
+		self.assign_component::<T>(entity, Some(Box::new(component)))
+	}
+
+	// TODO: Fix ABA problem
+	pub fn remove_component<T: 'static>(&mut self, entity: Entity) -> Result<()> {
+		self.assign_component::<T>(entity, None)
+	}
+
+	fn assign_component<T: 'static>(&mut self, entity: Entity, value: Option<Box<dyn Any + 'static>>) -> Result<()> {
 		if entity >= self.number_of_entities {
 			return Err(Box::new(EntityNotFoundError { entity }) as Box<dyn std::error::Error>);
 		}
@@ -92,10 +101,10 @@ impl World {
 
 		match components.get_mut(entity) {
 			Some(c) => {
-				*c = Some(Box::new(component));
+				*c = value;
 			},
 			None => {
-				components.insert(entity, Some(Box::new(component)));
+				components.insert(entity, value);
 			},
 		};
 
