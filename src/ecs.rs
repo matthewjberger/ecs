@@ -67,6 +67,7 @@ pub struct World {
 }
 
 impl World {
+	// TODO: Use generational indexes to support removal of entities
 	pub fn create_entity(&mut self) -> Entity {
 		let entity = self.number_of_entities;
 		self.number_of_entities += 1;
