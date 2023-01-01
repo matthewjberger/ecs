@@ -56,10 +56,6 @@ macro_rules! zip{
     ($x: expr, $($y: expr), +) => ($x.zip(zip!($($y), +)))
 }
 
-// fn downcast_component::<T>(component: Component) {
-// 	position.as_mut().and_then(|p| p.downcast_mut::<Position>());
-// }
-
 #[derive(Default, Debug)]
 pub struct World {
 	number_of_entities: usize,
@@ -132,12 +128,10 @@ impl World {
 		})
 	}
 
-	#[allow(dead_code)]
 	pub fn get_component_vec<T: 'static>(&self) -> Ref<Vec<Option<Box<dyn Any>>>> {
 		self.components.get(&TypeId::of::<T>()).unwrap().deref().borrow()
 	}
 
-	#[allow(dead_code)]
 	pub fn get_component_vec_mut<T: 'static>(&self) -> RefMut<Vec<Option<Box<dyn Any>>>> {
 		self.components.get(&TypeId::of::<T>()).unwrap().deref().borrow_mut()
 	}
