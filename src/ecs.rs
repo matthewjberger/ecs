@@ -67,12 +67,20 @@ pub struct World {
 }
 
 impl World {
-	// TODO: Use generational indexes to support removal of entities
+	pub fn new() -> Self {
+		Self::default()
+	}
+
 	pub fn create_entity(&mut self) -> Entity {
-		let entity = self.number_of_entities;
-		self.number_of_entities += 1;
+		self.create_entities(1)[0]
+	}
+
+	// TODO: Use generational indexes to support removal of entities
+	pub fn create_entities(&mut self, count: Entity) -> Vec<Entity> {
+		let start = self.number_of_entities;
+		self.number_of_entities += count;
 		self.grow_vectors(self.number_of_entities);
-		entity
+		(start..self.number_of_entities).collect()
 	}
 
 	pub fn add_component<T: 'static>(&mut self, entity: Entity, component: T) -> Result<()> {
@@ -125,12 +133,12 @@ impl World {
 	}
 
 	#[allow(dead_code)]
-	fn get_component_vec<T: 'static>(&self) -> Ref<Vec<Option<Box<dyn Any>>>> {
+	pub fn get_component_vec<T: 'static>(&self) -> Ref<Vec<Option<Box<dyn Any>>>> {
 		self.components.get(&TypeId::of::<T>()).unwrap().deref().borrow()
 	}
 
 	#[allow(dead_code)]
-	fn get_component_vec_mut<T: 'static>(&self) -> RefMut<Vec<Option<Box<dyn Any>>>> {
+	pub fn get_component_vec_mut<T: 'static>(&self) -> RefMut<Vec<Option<Box<dyn Any>>>> {
 		self.components.get(&TypeId::of::<T>()).unwrap().deref().borrow_mut()
 	}
 
@@ -212,6 +220,7 @@ mod tests {
 		world.add_component(entity, Position::default())?;
 		world.add_component(entity, Health { value: 10 })?;
 
+		// TODO: Abstract system creation with macros/generics
 		zip!(
 			world.get_component_vec_mut::<Position>().iter_mut(),
 			world.get_component_vec::<Health>().iter()
