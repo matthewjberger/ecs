@@ -39,7 +39,7 @@ macro_rules! component_vec {
     }
 }
 
-fn component_exists<'a, T: 'static>(entity: Entity, components: ComponentVecHandle) -> bool {
+fn component_exists<T: 'static>(entity: Entity, components: ComponentVecHandle) -> bool {
     components
         .borrow()
         .get(entity)
@@ -67,20 +67,21 @@ impl World {
         let mut components = self
             .components
             .entry(TypeId::of::<T>())
-            .or_insert(Rc::new(RefCell::new(Vec::new())))
+            .or_insert_with(|| Rc::new(RefCell::new(Vec::new())))
             .borrow_mut();
 
-        Ok(match components.get_mut(entity) {
+        match components.get_mut(entity) {
             Some(c) => {
                 *c = Some(Box::new(component));
             }
             None => {
                 components.insert(entity, Some(Box::new(component)));
             }
-        })
+        };
+        Ok(())
     }
 
-    pub fn get_component<'a, T: 'static>(&self, entity: Entity) -> Option<Ref<T>> {
+    pub fn get_component<T: 'static>(&self, entity: Entity) -> Option<Ref<T>> {
         self.components.get(&TypeId::of::<T>()).and_then(|c| {
             if !component_exists::<T>(entity, c.clone()) {
                 return None;
@@ -93,7 +94,7 @@ impl World {
         })
     }
 
-    pub fn get_component_mut<'a, T: 'static>(&self, entity: Entity) -> Option<RefMut<T>> {
+    pub fn get_component_mut<T: 'static>(&self, entity: Entity) -> Option<RefMut<T>> {
         self.components.get(&TypeId::of::<T>()).and_then(|c| {
             if !component_exists::<T>(entity, c.clone()) {
                 return None;
@@ -209,7 +210,7 @@ mod tests {
                         let health = health.as_mut().and_then(|h| h.downcast_mut::<Health>());
                         match (position, health) {
                             (Some(position), Some(health)) => Some((position, health)),
-                            _ => return None,
+                            _ => None,
                         }
                     })
             {
