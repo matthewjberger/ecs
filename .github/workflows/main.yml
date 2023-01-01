@@ -1,0 +1,56 @@
+name: Ecs CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    name: Build and test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install stable Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy
+
+      - name: Install nightly Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Show versions
+        run: |
+          rustc --version
+          cargo +nightly fmt -- --version
+          cargo clippy -- --version
+      - name: Check for errors
+        run: cargo check --all --tests
+
+      - name: Check formatting
+        run: cargo +nightly fmt --all --check
+
+      - name: Lint
+        run: cargo clippy --all --tests -- -D warnings
+
+      - name: Test
+        run: cargo test --all -- --nocapture
+        env:
+          RUST_LOG: debug
