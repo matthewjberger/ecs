@@ -3,4 +3,4 @@
 
 mod ecs;
 
-pub use ecs::*;
+pub use self::ecs::*;

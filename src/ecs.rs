@@ -28,14 +28,15 @@ impl std::fmt::Display for EntityNotFoundError {
 */
 pub type ComponentMap = HashMap<TypeId, ComponentVecHandle>;
 pub type ComponentVecHandle = Rc<RefCell<ComponentVec>>;
-pub type ComponentVec = Vec<Option<Box<dyn std::any::Any + 'static>>>;
+pub type ComponentVec = Vec<Option<Component>>;
+pub type Component = Box<dyn std::any::Any + 'static>;
 pub type Entity = usize;
 
 #[macro_export]
 macro_rules! component_vec {
     ($($component:expr),*) => {
         {
-            let components: Vec<Option<Box<dyn std::any::Any + 'static>>> = vec![$(Some(Box::new($component)),)*];
+            let components: ComponentVec = vec![$(Some(Box::new($component)),)*];
             components
         }
     }
@@ -48,6 +49,16 @@ fn component_exists<T: 'static>(entity: Entity, components: &ComponentVecHandle)
 		.and_then(|c| c.as_ref().and_then(|c| c.downcast_ref::<T>()))
 		.is_some()
 }
+
+#[macro_export]
+macro_rules! zip{
+    ($x: expr) => ($x);
+    ($x: expr, $($y: expr), +) => ($x.zip(zip!($($y), +)))
+}
+
+// fn downcast_component::<T>(component: Component) {
+// 	position.as_mut().and_then(|p| p.downcast_mut::<Position>());
+// }
 
 #[derive(Default, Debug)]
 pub struct World {
@@ -113,7 +124,12 @@ impl World {
 	}
 
 	#[allow(dead_code)]
-	fn get_component_vec<T: 'static>(&self) -> RefMut<Vec<Option<Box<dyn Any>>>> {
+	fn get_component_vec<T: 'static>(&self) -> Ref<Vec<Option<Box<dyn Any>>>> {
+		self.components.get(&TypeId::of::<T>()).unwrap().deref().borrow()
+	}
+
+	#[allow(dead_code)]
+	fn get_component_vec_mut<T: 'static>(&self) -> RefMut<Vec<Option<Box<dyn Any>>>> {
 		self.components.get(&TypeId::of::<T>()).unwrap().deref().borrow_mut()
 	}
 
@@ -195,23 +211,24 @@ mod tests {
 		world.add_component(entity, Position::default())?;
 		world.add_component(entity, Health { value: 10 })?;
 
-		{
-			let mut p = world.get_component_vec::<Position>();
-			let mut h = world.get_component_vec::<Health>();
-
-			for (position, health) in p.iter_mut().zip(h.iter_mut()).filter_map(|(position, health)| {
-				let position = position.as_mut().and_then(|p| p.downcast_mut::<Position>());
-				let health = health.as_mut().and_then(|h| h.downcast_mut::<Health>());
-				match (position, health) {
-					(Some(position), Some(health)) => Some((position, health)),
-					_ => None,
-				}
-			}) {
-				position.x = 10.0;
-				position.y = 10.0;
-				health.value = 0;
+		zip!(
+			world.get_component_vec_mut::<Position>().iter_mut(),
+			world.get_component_vec::<Health>().iter()
+		)
+		.enumerate()
+		.filter_map(|(entity, (position, health))| {
+			let position = position.as_mut().and_then(|p| p.downcast_mut::<Position>());
+			let health = health.as_ref().and_then(|h| h.downcast_ref::<Health>());
+			match (position, health) {
+				(Some(position), Some(health)) => Some((entity, (position, health))),
+				_ => None,
 			}
-		}
+		})
+		.into_iter()
+		.for_each(|(_entity, (position, _health))| {
+			position.x = 10.0;
+			position.y = 10.0;
+		});
 
 		assert_eq!(
 			*world.get_component::<Position>(entity).unwrap(),
