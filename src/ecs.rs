@@ -21,10 +21,11 @@ impl std::fmt::Display for EntityNotFoundError {
 	}
 }
 
-// Entities:                    Entity 0                       Entity 1   Entity 2
-// Entity 3 Physics Components   -> Vec( Some(Physics { vel: 3 }),      None,      Some(Physics {
-// vel: 10 }),       Some(Physics { vel: 04 }) ) Position Components  -> Vec( Some(Position { x: 3,
-// y: 3 }), None,      Some(Position { x: 10, y: -2 }), Some(Position { x: 100, y: -20 }) )
+/*
+   Entities:                    Entity 0                       Entity 1   Entity 2                         Entity 3
+   Physics Components   -> Vec( Some(Physics { vel: 3 }),      None,      Some(Physics { vel: 10 }),       Some(Physics { vel: 04 }) )
+   Position Components  -> Vec( Some(Position { x: 3, y: 3 }), None,      Some(Position { x: 10, y: -2 }), Some(Position { x: 100, y: -20 }) )
+*/
 pub type ComponentMap = HashMap<TypeId, ComponentVecHandle>;
 pub type ComponentVecHandle = Rc<RefCell<ComponentVec>>;
 pub type ComponentVec = Vec<Option<Box<dyn std::any::Any + 'static>>>;
