@@ -2,5 +2,11 @@
 name = "ecs"
 version = "0.1.0"
 edition = "2021"
+description = "An entity component system data structure"
+license = "MIT"
+repository = "https://github.com/matthewjberger/ecs"
+keywords = ["simulation"]
+categories = ["simulation"]
+readme = "README.md"
 
 [dependencies]

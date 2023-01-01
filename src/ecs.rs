@@ -34,14 +34,13 @@ pub type Entity = usize;
 macro_rules! component_vec {
     ($($component:expr),*) => {
         {
-            let mut components: Vec<Option<Box<dyn std::any::Any + 'static>>> = Vec::new();
-            $(components.push(Some(Box::new($component)));)*
+            let components: Vec<Option<Box<dyn std::any::Any + 'static>>> = vec![$(Some(Box::new($component)),)*];
             components
         }
     }
 }
 
-fn component_exists<T: 'static>(entity: Entity, components: ComponentVecHandle) -> bool {
+fn component_exists<T: 'static>(entity: Entity, components: &ComponentVecHandle) -> bool {
 	components
 		.borrow()
 		.get(entity)
@@ -84,9 +83,10 @@ impl World {
 		Ok(())
 	}
 
+	#[must_use]
 	pub fn get_component<T: 'static>(&self, entity: Entity) -> Option<Ref<T>> {
 		self.components.get(&TypeId::of::<T>()).and_then(|c| {
-			if !component_exists::<T>(entity, c.clone()) {
+			if !component_exists::<T>(entity, c) {
 				return None;
 			}
 			Some(Ref::map(c.borrow(), |t| {
@@ -97,9 +97,10 @@ impl World {
 		})
 	}
 
+	#[must_use]
 	pub fn get_component_mut<T: 'static>(&self, entity: Entity) -> Option<RefMut<T>> {
 		self.components.get(&TypeId::of::<T>()).and_then(|c| {
-			if !component_exists::<T>(entity, c.clone()) {
+			if !component_exists::<T>(entity, c) {
 				return None;
 			}
 			Some(RefMut::map(c.borrow_mut(), |t| {
