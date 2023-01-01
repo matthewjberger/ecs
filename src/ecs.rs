@@ -203,6 +203,16 @@ mod tests {
 	}
 
 	#[test]
+	fn remove_component() -> Result<()> {
+		let mut world = World::default();
+		let entity = world.create_entity();
+		world.add_component(entity, Position::default())?;
+		world.remove_component::<Position>(entity)?;
+		assert!(world.get_component::<Position>(entity).is_none());
+		Ok(())
+	}
+
+	#[test]
 	fn get_component() {
 		assert_eq!(
 			*create_test_world().get_component::<Position>(0).unwrap(),
