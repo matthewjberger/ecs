@@ -19,7 +19,7 @@ macro_rules! zip{
 #[derive(Default)]
 pub struct World {
 	components: ComponentMap,
-	entity_allocator: HandleAllocator,
+	allocator: HandleAllocator,
 }
 
 impl World {
@@ -32,10 +32,7 @@ impl World {
 	}
 
 	pub fn create_entities(&mut self, count: usize) -> Vec<Entity> {
-		(0..count)
-			.into_iter()
-			.map(|_index| self.entity_allocator.allocate())
-			.collect()
+		(0..count).into_iter().map(|_index| self.allocator.allocate()).collect()
 	}
 
 	pub fn remove_entity(&mut self, entity: Entity) {
@@ -43,9 +40,7 @@ impl World {
 	}
 
 	pub fn remove_entities(&mut self, entities: &[Entity]) {
-		entities
-			.iter()
-			.for_each(|entity| self.entity_allocator.deallocate(entity))
+		entities.iter().for_each(|entity| self.allocator.deallocate(entity))
 	}
 
 	pub fn add_component<T: 'static>(&mut self, entity: Entity, component: T) -> Result<()> {
@@ -57,7 +52,7 @@ impl World {
 	}
 
 	fn assign_component<T: 'static>(&mut self, entity: Entity, value: Option<Component>) -> Result<()> {
-		if !self.entity_allocator.handle_exists(&entity) {
+		if !self.allocator.handle_exists(&entity) {
 			return Err(Box::new(HandleNotFoundError { handle: entity }) as Box<dyn std::error::Error>);
 		}
 
@@ -118,7 +113,7 @@ impl World {
 	}
 
 	pub fn entity_exists(&self, entity: Entity) -> bool {
-		self.entity_allocator.is_allocated(&entity)
+		self.allocator.is_allocated(&entity)
 	}
 }
 
