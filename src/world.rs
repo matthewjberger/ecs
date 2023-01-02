@@ -38,6 +38,16 @@ impl World {
 			.collect()
 	}
 
+	pub fn remove_entity(&mut self, entity: Entity) {
+		self.remove_entities(&[entity]);
+	}
+
+	pub fn remove_entities(&mut self, entities: &[Entity]) {
+		entities
+			.iter()
+			.for_each(|handle| self.entity_allocator.deallocate(handle))
+	}
+
 	pub fn add_component<T: 'static>(&mut self, entity: Entity, component: T) -> Result<()> {
 		self.assign_component::<T>(entity, Some(Box::new(component)))
 	}
@@ -47,7 +57,7 @@ impl World {
 	}
 
 	fn assign_component<T: 'static>(&mut self, entity: Entity, value: Option<Component>) -> Result<()> {
-		if !self.entity_allocator.handle_exists(entity) {
+		if !self.entity_allocator.handle_exists(&entity) {
 			return Err(Box::new(HandleNotFoundError { handle: entity }) as Box<dyn std::error::Error>);
 		}
 

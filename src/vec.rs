@@ -200,7 +200,7 @@ impl HandleAllocator {
 		}
 	}
 
-	pub fn deallocate(&mut self, handle: Handle) {
+	pub fn deallocate(&mut self, handle: &Handle) {
 		if !self.is_allocated(handle) {
 			return;
 		}
@@ -208,13 +208,13 @@ impl HandleAllocator {
 		self.available_handles.push(handle.index);
 	}
 
-	pub fn is_allocated(&self, handle: Handle) -> bool {
+	pub fn is_allocated(&self, handle: &Handle) -> bool {
 		self.handle_exists(handle)
 			&& self.allocations[handle.index].generation == handle.generation
 			&& self.allocations[handle.index].allocated
 	}
 
-	pub fn handle_exists(&self, handle: Handle) -> bool {
+	pub fn handle_exists(&self, handle: &Handle) -> bool {
 		handle.index < self.allocations.len()
 	}
 }
@@ -230,7 +230,7 @@ mod tests {
 		let mut handle_allocator = HandleAllocator::new();
 
 		let handle = handle_allocator.allocate();
-		assert!(handle_allocator.is_allocated(handle));
+		assert!(handle_allocator.is_allocated(&handle));
 
 		elements.insert(handle, 3)?;
 		assert_eq!(elements.get(handle), Some(&3));
@@ -243,8 +243,8 @@ mod tests {
 		elements.remove(handle);
 		assert_eq!(elements.get(handle), None);
 
-		handle_allocator.deallocate(handle);
-		assert!(!handle_allocator.is_allocated(handle));
+		handle_allocator.deallocate(&handle);
+		assert!(!handle_allocator.is_allocated(&handle));
 
 		// This assures that the "A->B->A" problem is addressed
 		let next_handle = handle_allocator.allocate();
