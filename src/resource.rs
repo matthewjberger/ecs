@@ -42,7 +42,7 @@ impl ResourceMap {
 mod tests {
 	use super::ResourceMap;
 
-	#[derive(Debug, Default, PartialEq, Copy, Clone)]
+	#[derive(Debug, Default, PartialEq, Eq, Copy, Clone)]
 	pub struct Viewport {
 		width: u32,
 		height: u32,

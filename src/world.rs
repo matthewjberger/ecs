@@ -29,7 +29,7 @@ impl World {
 		Self::default()
 	}
 
-	pub fn resources(&self) -> &ResourceMap {
+	pub const fn resources(&self) -> &ResourceMap {
 		&self.resources
 	}
 
