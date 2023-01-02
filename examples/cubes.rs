@@ -15,7 +15,6 @@ fn main() -> Result<()> {
 	let mut arc_ball = create_camera();
 
 	while window.render_with_camera(&mut arc_ball) {
-		draw_axes(&mut window);
 		rotation_system(&world);
 	}
 
@@ -59,22 +58,4 @@ fn create_camera() -> ArcBall {
 	let eye = Point3::new(10.0, 10.0, 10.0);
 	let at = Point3::origin();
 	ArcBall::new(eye, at)
-}
-
-fn draw_axes(window: &mut Window) {
-	window.draw_line(
-		&Point3::origin(),
-		&Point3::new(1.0, 0.0, 0.0),
-		&Point3::new(1.0, 0.0, 0.0),
-	);
-	window.draw_line(
-		&Point3::origin(),
-		&Point3::new(0.0, 1.0, 0.0),
-		&Point3::new(0.0, 1.0, 0.0),
-	);
-	window.draw_line(
-		&Point3::origin(),
-		&Point3::new(0.0, 0.0, 1.0),
-		&Point3::new(0.0, 0.0, 1.0),
-	);
 }
