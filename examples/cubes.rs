@@ -7,7 +7,7 @@ use rand::Rng;
 pub struct Render(pub SceneNode);
 
 fn main() -> Result<()> {
-	let mut window = Window::new("ECS Demo");
+	let mut window = Window::new("Entity-Component-System Architecture Demo");
 	window.set_light(Light::StickToCamera);
 
 	let world = create_world(&mut window);

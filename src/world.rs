@@ -45,7 +45,7 @@ impl World {
 	pub fn remove_entities(&mut self, entities: &[Entity]) {
 		entities
 			.iter()
-			.for_each(|handle| self.entity_allocator.deallocate(handle))
+			.for_each(|entity| self.entity_allocator.deallocate(entity))
 	}
 
 	pub fn add_component<T: 'static>(&mut self, entity: Entity, component: T) -> Result<()> {
@@ -81,6 +81,9 @@ impl World {
 
 	#[must_use]
 	pub fn get_component<T: 'static>(&self, entity: Entity) -> Option<Ref<T>> {
+		if !self.entity_exists(entity) {
+			return None;
+		}
 		self.components.get(&TypeId::of::<T>()).and_then(|c| {
 			if !component_exists::<T>(entity, c) {
 				return None;
@@ -93,6 +96,9 @@ impl World {
 
 	#[must_use]
 	pub fn get_component_mut<T: 'static>(&self, entity: Entity) -> Option<RefMut<T>> {
+		if !self.entity_exists(entity) {
+			return None;
+		}
 		self.components.get(&TypeId::of::<T>()).and_then(|c| {
 			if !component_exists::<T>(entity, c) {
 				return None;
@@ -110,13 +116,17 @@ impl World {
 	pub fn get_component_vec_mut<T: 'static>(&self) -> RefMut<ComponentVec> {
 		self.components.get(&TypeId::of::<T>()).unwrap().deref().borrow_mut()
 	}
+
+	pub fn entity_exists(&self, entity: Entity) -> bool {
+		self.entity_allocator.is_allocated(&entity)
+	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{component::Entity, component_vec};
-	use std::{collections::HashMap, ops::DerefMut};
+
+	use std::ops::DerefMut;
 
 	#[derive(Debug, Default, PartialEq, Copy, Clone)]
 	pub struct Position {
@@ -129,14 +139,15 @@ mod tests {
 		value: u8,
 	}
 
-	fn create_test_world() -> World {
-		World {
-			components: HashMap::from([
-				(TypeId::of::<Position>(), component_vec!(Position::default())),
-				(TypeId::of::<Health>(), component_vec!(Health::default())),
-			]),
-			..Default::default()
-		}
+	#[test]
+	fn entity() -> Result<()> {
+		let mut world = World::default();
+		let entity = world.create_entity();
+		world.add_component(entity, Position::default())?;
+		assert!(world.get_component::<Position>(entity).as_deref().is_some());
+		world.remove_entity(entity);
+		assert_eq!(world.get_component::<Position>(entity).as_deref(), None);
+		Ok(())
 	}
 
 	#[test]
@@ -166,21 +177,28 @@ mod tests {
 	}
 
 	#[test]
-	fn get_component() {
-		let entity = Entity::default();
+	fn get_component() -> Result<()> {
+		let mut world = World::default();
+		let entity = world.create_entity();
+		world.add_component(entity, Position::default())?;
 		assert_eq!(
-			*create_test_world().get_component::<Position>(entity).unwrap(),
-			Position::default()
+			world.get_component::<Position>(entity).as_deref(),
+			Some(&Position::default())
 		);
+		Ok(())
 	}
 
 	#[test]
-	fn get_component_mut() {
-		let world = create_test_world();
-		let entity = Entity::default();
+	fn get_component_mut() -> Result<()> {
+		let mut world = World::default();
+		let entity = world.create_entity();
+		world.add_component(entity, Position::default())?;
 		world.get_component_mut::<Position>(entity).unwrap().deref_mut().x = 10.0;
-		let actual = world.get_component::<Position>(entity).unwrap();
-		assert_eq!(*actual, Position { x: 10.0, y: 0.0 });
+		assert_eq!(
+			world.get_component::<Position>(entity).as_deref(),
+			Some(&Position { x: 10.0, y: 0.0 })
+		);
+		Ok(())
 	}
 
 	#[test]
