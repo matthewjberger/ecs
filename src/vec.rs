@@ -91,29 +91,20 @@ impl<T> GenerationalVec<T> {
 		if handle.index >= self.elements.len() {
 			return None;
 		}
-		self.elements[handle.index].as_ref().and_then(|entry| {
-			if entry.generation == handle.generation {
-				Some(&entry.value)
-			} else {
-				None
-			}
-		})
+		self.elements[handle.index]
+			.as_ref()
+			.filter(|c| c.generation == handle.generation)
+			.and_then(|entry| Some(&entry.value))
 	}
 
 	pub fn get_mut(&mut self, handle: Handle) -> Option<&mut T> {
 		if handle.index >= self.elements.len() {
 			return None;
 		}
-		match &mut self.elements[handle.index] {
-			Some(entry) => {
-				if entry.generation == handle.generation {
-					Some(&mut entry.value)
-				} else {
-					None
-				}
-			},
-			None => None,
-		}
+		self.elements[handle.index]
+			.as_mut()
+			.filter(|c| c.generation == handle.generation)
+			.and_then(|entry| Some(&mut entry.value))
 	}
 }
 
