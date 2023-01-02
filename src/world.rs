@@ -206,22 +206,6 @@ mod tests {
 	}
 
 	#[test]
-	fn resources() -> Result<()> {
-		let mut world = World::default();
-
-		world.resources_mut().add(Position::default());
-		assert_eq!(world.resources().get::<Position>(), Some(&Position::default()));
-
-		world.resources_mut().get_mut::<Position>().unwrap().x = 10.0;
-		assert_eq!(world.resources().get::<Position>(), Some(&Position { x: 10.0, y: 0.0 }));
-
-		world.resources_mut().remove::<Position>();
-		assert_eq!(world.resources().get::<Position>(), None);
-
-		Ok(())
-	}
-
-	#[test]
 	fn system() -> Result<()> {
 		let mut world = World::default();
 		let entity = world.create_entity();

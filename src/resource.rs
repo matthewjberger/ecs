@@ -1,5 +1,7 @@
-use std::any::{Any, TypeId};
-use std::collections::HashMap;
+use std::{
+	any::{Any, TypeId},
+	collections::HashMap,
+};
 
 #[derive(Default)]
 pub struct ResourceMap {
@@ -40,29 +42,26 @@ impl ResourceMap {
 mod tests {
 	use super::ResourceMap;
 
-	struct DeltaTime(f64);
-
-	struct Input {
-		esc_key_down: bool,
+	#[derive(Debug, Default, PartialEq, Copy, Clone)]
+	pub struct Viewport {
+		width: u32,
+		height: u32,
 	}
 
 	#[test]
-	fn anymap() {
-		let delta_time = 0.01;
-		let mut anymap = ResourceMap::new();
-		anymap.add(DeltaTime(delta_time));
-		assert_eq!(anymap.get::<DeltaTime>().unwrap().0, delta_time);
+	fn resources() {
+		let mut resources = ResourceMap::new();
 
-		let delta_time = 0.02;
-		if let Some(entry) = anymap.get_mut::<DeltaTime>() {
-			entry.0 = delta_time;
-		}
-		assert_eq!(anymap.get::<DeltaTime>().unwrap().0, delta_time);
+		resources.add(Viewport::default());
+		assert_eq!(resources.get::<Viewport>(), Some(&Viewport::default()));
 
-		anymap.add(Input { esc_key_down: false });
-		assert_eq!(anymap.get::<Input>().unwrap().esc_key_down, false);
+		let (width, height) = (1920, 1080);
+		let mut viewport = resources.get_mut::<Viewport>().unwrap();
+		viewport.width = width;
+		viewport.height = height;
+		assert_eq!(resources.get::<Viewport>(), Some(&Viewport { width, height }));
 
-		anymap.remove::<DeltaTime>();
-		assert!(anymap.get::<DeltaTime>().is_none());
+		resources.remove::<Viewport>();
+		assert_eq!(resources.get::<Viewport>(), None);
 	}
 }
