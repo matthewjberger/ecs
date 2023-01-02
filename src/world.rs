@@ -1,7 +1,7 @@
 use crate::{
 	component::{component_exists, Component, ComponentMap, ComponentVec},
-	entity::{Entity, EntityAllocator},
-	error::{EntityNotFoundError, Result},
+	entity::{Entity, EntityAllocator, EntityNotFoundError},
+	error::Result,
 };
 use std::{
 	any::TypeId,

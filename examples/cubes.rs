@@ -49,10 +49,7 @@ fn rotation_system(world: &World) {
 		.enumerate()
 		.filter_map(|(entity, render)| {
 			let render = render.as_mut().and_then(|p| p.downcast_mut::<Render>());
-			match render {
-				Some(render) => Some((entity, render)),
-				_ => None,
-			}
+			render.map(|render| (entity, render))
 		})
 		.into_iter()
 		.for_each(|(_entity, render)| render.0.prepend_to_local_rotation(&rotation));

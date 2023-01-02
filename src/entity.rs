@@ -1,8 +1,19 @@
-#[derive(Default, Debug, PartialEq, Eq, Copy, Clone)]
-pub struct Entity {
-	pub index: usize,
-	pub generation: usize,
+use crate::vec::Handle;
+
+#[derive(Debug)]
+pub struct EntityNotFoundError {
+	pub entity: Entity,
 }
+
+impl std::error::Error for EntityNotFoundError {}
+
+impl std::fmt::Display for EntityNotFoundError {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "Entity '{:?}' does not exist.", self.entity)
+	}
+}
+
+pub type Entity = Handle;
 
 pub struct Allocation {
 	in_use: bool,
