@@ -1,6 +1,6 @@
 # Parsecs
 
-This is a small ecs implementation in Rust that demonstrates storing and accessing column oriented data while still ensuring memory safety.
+This is an ecs architecture implementation in Rust that demonstrates storing and accessing column oriented data while still ensuring memory safety.
 
 # Example
 
@@ -12,4 +12,4 @@ cargo run -r --example cubes
 
 This demonstrates adding `entities` to a `World`, assigning components to those entities, and mutating component data using a `system` that iterates over component vectors to find the `relevant_entities`.
 
-![Ecs Demo](./images/ecs.gif)
+![ECS Cubes Demo](https://media.giphy.com/media/1Z9zuXPAUQhIQiBnLN/giphy.gif)
