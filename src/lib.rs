@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 #![forbid(clippy::all, clippy::nursery, clippy::cargo)]
 
-mod ecs;
-
-pub use self::ecs::*;
+pub mod component;
+pub mod entity;
+pub mod error;
+pub mod world;

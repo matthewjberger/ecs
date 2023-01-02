@@ -1,5 +1,5 @@
 use anyhow::Result;
-use ecs::{zip, World};
+use ecs::{world::World, zip};
 use kiss3d::{camera::ArcBall, light::Light, scene::SceneNode, window::Window};
 use nalgebra::{Point3, UnitQuaternion, Vector3};
 use rand::Rng;
