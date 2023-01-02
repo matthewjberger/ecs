@@ -10,6 +10,6 @@ To run the example:
 cargo run -r --example cubes
 ```
 
-This demonstrates adding `entities` to a `World`, assigning `component`s to them, and mutating component data using a `system` that iterates over component vectors with a `filter_map` to find the relevant entities.
+This demonstrates adding `entities` to a `World`, assigning components to those entities, and mutating component data using a `system` that iterates over component vectors to find the `relevant_entities`.
 
 ![Ecs Demo](./images/ecs.gif)
