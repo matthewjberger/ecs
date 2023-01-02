@@ -29,7 +29,7 @@ macro_rules! component_vec {
     }
 }
 
-pub fn component_exists<T: 'static>(entity: Entity, components: &ComponentVecHandle) -> bool {
+pub fn entity_has_component<T: 'static>(entity: Entity, components: &ComponentVecHandle) -> bool {
 	components
 		.borrow()
 		.get(entity)
@@ -53,7 +53,7 @@ mod tests {
 			.borrow_mut()
 			.insert(entity, Box::new(Name("Elliot Alderson".to_string())))?;
 
-		assert!(super::component_exists::<Name>(entity, &components));
+		assert!(super::entity_has_component::<Name>(entity, &components));
 		Ok(())
 	}
 }

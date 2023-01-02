@@ -1,5 +1,5 @@
 use crate::{
-	component::{component_exists, Component, ComponentMap, ComponentVec, Entity},
+	component::{entity_has_component, Component, ComponentMap, ComponentVec, Entity},
 	error::Result,
 	resource::ResourceMap,
 	vec::{error::HandleNotFoundError, HandleAllocator},
@@ -52,8 +52,13 @@ impl World {
 	pub fn remove_entities(&mut self, entities: &[Entity]) {
 		entities.iter().for_each(|entity| self.allocator.deallocate(entity))
 	}
+
 	pub fn add_component<T: 'static>(&mut self, entity: Entity, component: T) -> Result<()> {
 		self.assign_component::<T>(entity, Some(Box::new(component)))
+	}
+
+	pub fn has_component<T: 'static>(&mut self, entity: Entity) -> bool {
+		self.get_component::<T>(entity).is_some()
 	}
 
 	pub fn remove_component<T: 'static>(&mut self, entity: Entity) -> Result<()> {
@@ -89,7 +94,7 @@ impl World {
 			return None;
 		}
 		self.components.get(&TypeId::of::<T>()).and_then(|c| {
-			if !component_exists::<T>(entity, c) {
+			if !entity_has_component::<T>(entity, c) {
 				return None;
 			}
 			Some(Ref::map(c.borrow(), |t| {
@@ -104,7 +109,7 @@ impl World {
 			return None;
 		}
 		self.components.get(&TypeId::of::<T>()).and_then(|c| {
-			if !component_exists::<T>(entity, c) {
+			if !entity_has_component::<T>(entity, c) {
 				return None;
 			}
 			Some(RefMut::map(c.borrow_mut(), |t| {
@@ -185,6 +190,7 @@ mod tests {
 		let mut world = World::default();
 		let entity = world.create_entity();
 		world.add_component(entity, Position::default())?;
+		assert!(world.has_component::<Position>(entity));
 		assert_eq!(
 			world.get_component::<Position>(entity).as_deref(),
 			Some(&Position::default())
