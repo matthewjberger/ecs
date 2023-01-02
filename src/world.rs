@@ -1,6 +1,7 @@
 use crate::{
 	component::{component_exists, Component, ComponentMap, ComponentVec, Entity},
 	error::Result,
+	resource::ResourceMap,
 	vec::{error::HandleNotFoundError, HandleAllocator},
 };
 use std::{
@@ -18,6 +19,7 @@ macro_rules! zip{
 
 #[derive(Default)]
 pub struct World {
+	resources: ResourceMap,
 	components: ComponentMap,
 	allocator: HandleAllocator,
 }
@@ -25,6 +27,14 @@ pub struct World {
 impl World {
 	pub fn new() -> Self {
 		Self::default()
+	}
+
+	pub fn resources(&self) -> &ResourceMap {
+		&self.resources
+	}
+
+	pub fn resources_mut(&mut self) -> &mut ResourceMap {
+		&mut self.resources
 	}
 
 	pub fn create_entity(&mut self) -> Entity {
@@ -42,7 +52,6 @@ impl World {
 	pub fn remove_entities(&mut self, entities: &[Entity]) {
 		entities.iter().for_each(|entity| self.allocator.deallocate(entity))
 	}
-
 	pub fn add_component<T: 'static>(&mut self, entity: Entity, component: T) -> Result<()> {
 		self.assign_component::<T>(entity, Some(Box::new(component)))
 	}
@@ -193,6 +202,22 @@ mod tests {
 			world.get_component::<Position>(entity).as_deref(),
 			Some(&Position { x: 10.0, y: 0.0 })
 		);
+		Ok(())
+	}
+
+	#[test]
+	fn resources() -> Result<()> {
+		let mut world = World::default();
+
+		world.resources_mut().add(Position::default());
+		assert_eq!(world.resources().get::<Position>(), Some(&Position::default()));
+
+		world.resources_mut().get_mut::<Position>().unwrap().x = 10.0;
+		assert_eq!(world.resources().get::<Position>(), Some(&Position { x: 10.0, y: 0.0 }));
+
+		world.resources_mut().remove::<Position>();
+		assert_eq!(world.resources().get::<Position>(), None);
+
 		Ok(())
 	}
 
