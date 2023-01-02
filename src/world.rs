@@ -1,7 +1,7 @@
 use crate::{
-	component::{component_exists, Component, ComponentMap, ComponentVec},
+	component::{component_exists, Component, ComponentMap, ComponentVec, Entity},
 	error::Result,
-	vec::{error::HandleNotFoundError, Handle, HandleAllocator},
+	vec::{error::HandleNotFoundError, HandleAllocator},
 };
 use std::{
 	any::TypeId,
@@ -9,8 +9,6 @@ use std::{
 	ops::Deref,
 	rc::Rc,
 };
-
-pub type Entity = Handle;
 
 #[macro_export]
 macro_rules! zip{
@@ -107,7 +105,7 @@ impl World {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::component_vec;
+	use crate::{component::Entity, component_vec};
 	use std::{collections::HashMap, ops::DerefMut};
 
 	#[derive(Debug, Default, PartialEq, Copy, Clone)]
