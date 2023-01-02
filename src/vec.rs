@@ -104,7 +104,6 @@ impl<T> GenerationalVec<T> {
 		if handle.index >= self.elements.len() {
 			return None;
 		}
-
 		match &mut self.elements[handle.index] {
 			Some(entry) => {
 				if entry.generation == handle.generation {
