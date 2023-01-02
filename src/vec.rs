@@ -1,25 +1,53 @@
+use self::error::GenerationError;
 use crate::error::Result;
 use std::ops::{Deref, DerefMut};
 
-pub type SlotVec<T> = Vec<Option<Slot<T>>>;
+pub mod error {
+	use super::*;
 
-#[derive(Debug)]
-pub struct GenerationError {
-	pub handle: Handle,
-}
+	#[derive(Debug)]
+	pub struct GenerationError {
+		pub handle: Handle,
+	}
 
-impl std::error::Error for GenerationError {}
+	impl std::error::Error for GenerationError {}
 
-impl std::fmt::Display for GenerationError {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(f, "Entity '{:?}' generation i.", self.handle)
+	impl std::fmt::Display for GenerationError {
+		fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+			write!(f, "Entity '{:?}' generation i.", self.handle)
+		}
+	}
+
+	#[derive(Debug)]
+	pub struct HandleNotFoundError {
+		pub handle: Handle,
+	}
+
+	impl std::error::Error for HandleNotFoundError {}
+
+	impl std::fmt::Display for HandleNotFoundError {
+		fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+			write!(f, "Entity '{:?}' does not exist.", self.handle)
+		}
 	}
 }
 
+pub type SlotVec<T> = Vec<Option<Slot<T>>>;
+
 #[derive(Default, Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Handle {
-	pub index: usize,
-	pub generation: usize,
+	index: usize,
+	generation: usize,
+}
+
+impl Handle {
+	pub const fn index(&self) -> &usize {
+		&self.index
+	}
+
+	pub const fn generation(&self) -> &usize {
+		&self.generation
+	}
 }
 
 pub struct GenerationalVec<T> {
@@ -31,7 +59,7 @@ impl<T> GenerationalVec<T> {
 		Self { elements }
 	}
 
-	pub fn add_to(&mut self, handle: Handle, value: T) -> Result<()> {
+	pub fn insert(&mut self, handle: Handle, value: T) -> Result<()> {
 		while self.elements.len() <= handle.index {
 			self.elements.push(None);
 		}
@@ -53,9 +81,9 @@ impl<T> GenerationalVec<T> {
 		Ok(())
 	}
 
-	pub fn remove_from(&mut self, handle: Handle) {
-		if handle.index < self.elements.len() {
-			self.elements[handle.index] = None;
+	pub fn remove(&mut self, handle: Handle) {
+		if let Some(e) = self.elements.get_mut(handle.index) {
+			*e = None;
 		}
 	}
 
@@ -114,8 +142,8 @@ impl<T> Slot<T> {
 		Self { value, generation }
 	}
 
-	pub const fn generation(&self) -> usize {
-		self.generation
+	pub const fn generation(&self) -> &usize {
+		&self.generation
 	}
 }
 
@@ -130,5 +158,99 @@ impl<T> Deref for Slot<T> {
 impl<T> DerefMut for Slot<T> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		&mut self.value
+	}
+}
+
+pub struct Allocation {
+	allocated: bool,
+	generation: usize,
+}
+
+#[derive(Default)]
+pub struct HandleAllocator {
+	allocations: Vec<Allocation>,
+	available_handles: Vec<usize>,
+}
+
+impl HandleAllocator {
+	pub fn new() -> Self {
+		Self::default()
+	}
+
+	pub fn allocate(&mut self) -> Handle {
+		match self.available_handles.pop() {
+			Some(index) => {
+				self.allocations[index].generation += 1;
+				self.allocations[index].allocated = true;
+				Handle {
+					index,
+					generation: self.allocations[index].generation,
+				}
+			},
+			None => {
+				self.allocations.push(Allocation {
+					allocated: true,
+					generation: 0,
+				});
+				Handle {
+					index: self.allocations.len() - 1,
+					generation: 0,
+				}
+			},
+		}
+	}
+
+	pub fn deallocate(&mut self, handle: Handle) {
+		if !self.is_allocated(handle) {
+			return;
+		}
+		self.allocations[handle.index].allocated = false;
+		self.available_handles.push(handle.index);
+	}
+
+	pub fn is_allocated(&self, handle: Handle) -> bool {
+		self.handle_exists(handle)
+			&& self.allocations[handle.index].generation == handle.generation
+			&& self.allocations[handle.index].allocated
+	}
+
+	pub fn handle_exists(&self, handle: Handle) -> bool {
+		handle.index < self.allocations.len()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::error::Result;
+
+	#[test]
+	fn insertion_and_removal() -> Result<()> {
+		let mut elements = GenerationalVec::new(SlotVec::<u32>::default());
+		let mut handle_allocator = HandleAllocator::new();
+
+		let handle = handle_allocator.allocate();
+		assert!(handle_allocator.is_allocated(handle));
+
+		elements.insert(handle, 3)?;
+		assert_eq!(elements.get(handle), Some(&3));
+
+		if let Some(element) = elements.get_mut(handle) {
+			*element = 10;
+		}
+		assert_eq!(elements.get(handle), Some(&10));
+
+		elements.remove(handle);
+		assert_eq!(elements.get(handle), None);
+
+		handle_allocator.deallocate(handle);
+		assert!(!handle_allocator.is_allocated(handle));
+
+		// This assures that the "A->B->A" problem is addressed
+		let next_handle = handle_allocator.allocate();
+		assert_eq!(*next_handle.index(), *handle.index());
+		assert_eq!(*next_handle.generation(), *handle.generation() + 1);
+
+		Ok(())
 	}
 }

@@ -1,6 +1,6 @@
 use crate::{
-	entity::Entity,
 	vec::{GenerationalVec, SlotVec},
+	world::Entity,
 };
 use std::{any::TypeId, cell::RefCell, collections::hash_map::HashMap, rc::Rc};
 
@@ -12,7 +12,6 @@ use std::{any::TypeId, cell::RefCell, collections::hash_map::HashMap, rc::Rc};
 pub type ComponentMap = HashMap<TypeId, ComponentVecHandle>;
 pub type ComponentVecHandle = Rc<RefCell<ComponentVec>>;
 pub type Component = Box<dyn std::any::Any + 'static>;
-
 pub type ComponentVec = GenerationalVec<Component>;
 
 impl Default for ComponentVec {
@@ -25,7 +24,9 @@ impl Default for ComponentVec {
 macro_rules! component_vec {
     ($($component:expr),*) => {
         {
-            ComponentVec::new(vec![$(Some($crate::vec::Slot::new(Box::new($component), 0)),)*])
+			use std::{rc::Rc, cell::RefCell};
+			use $crate::component::ComponentVec;
+            Rc::new(RefCell::new(ComponentVec::new(vec![$(Some($crate::vec::Slot::new(Box::new($component), 0)),)*])))
         }
     }
 }
@@ -38,12 +39,23 @@ pub fn component_exists<T: 'static>(entity: Entity, components: &ComponentVecHan
 		.is_some()
 }
 
-// #[cfg(test)]
-// mod tests {
-// 	use super::*;
-// 	use crate::component_vec;
-// 	use std::{collections::HashMap, ops::DerefMut};
+#[cfg(test)]
+mod tests {
+	use crate::{error::Result, vec::HandleAllocator};
 
-// 	#[test]
-// 	fn asdf() {}
-// }
+	struct Name(String);
+
+	#[test]
+	fn component_exists() -> Result<()> {
+		let mut entity_allocator = HandleAllocator::new();
+		let entity = entity_allocator.allocate();
+
+		let components = component_vec!();
+		components
+			.borrow_mut()
+			.insert(entity, Box::new(Name("Elliot Alderson".to_string())))?;
+
+		assert!(super::component_exists::<Name>(entity, &components));
+		Ok(())
+	}
+}

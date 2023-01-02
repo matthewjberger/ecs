@@ -2,7 +2,6 @@
 #![forbid(clippy::all, clippy::nursery, clippy::cargo)]
 
 pub mod component;
-pub mod entity;
 pub mod vec;
 pub mod world;
 

@@ -1,7 +1,7 @@
 use crate::{
 	component::{component_exists, Component, ComponentMap, ComponentVec},
-	entity::{Entity, EntityAllocator, EntityNotFoundError},
 	error::Result,
+	vec::{error::HandleNotFoundError, Handle, HandleAllocator},
 };
 use std::{
 	any::TypeId,
@@ -9,6 +9,8 @@ use std::{
 	ops::Deref,
 	rc::Rc,
 };
+
+pub type Entity = Handle;
 
 #[macro_export]
 macro_rules! zip{
@@ -19,7 +21,7 @@ macro_rules! zip{
 #[derive(Default)]
 pub struct World {
 	components: ComponentMap,
-	entity_allocator: EntityAllocator,
+	entity_allocator: HandleAllocator,
 }
 
 impl World {
@@ -47,8 +49,8 @@ impl World {
 	}
 
 	fn assign_component<T: 'static>(&mut self, entity: Entity, value: Option<Component>) -> Result<()> {
-		if !self.entity_allocator.entity_exists(entity) {
-			return Err(Box::new(EntityNotFoundError { entity }) as Box<dyn std::error::Error>);
+		if !self.entity_allocator.handle_exists(entity) {
+			return Err(Box::new(HandleNotFoundError { handle: entity }) as Box<dyn std::error::Error>);
 		}
 
 		let mut components = self
@@ -59,10 +61,10 @@ impl World {
 
 		match value {
 			Some(component) => {
-				components.add_to(entity, component)?;
+				components.insert(entity, component)?;
 			},
 			None => {
-				components.remove_from(entity);
+				components.remove(entity);
 			},
 		}
 
@@ -122,14 +124,8 @@ mod tests {
 	fn create_test_world() -> World {
 		World {
 			components: HashMap::from([
-				(
-					TypeId::of::<Position>(),
-					Rc::new(RefCell::new(component_vec!(Position::default()))),
-				),
-				(
-					TypeId::of::<Health>(),
-					Rc::new(RefCell::new(component_vec!(Health::default()))),
-				),
+				(TypeId::of::<Position>(), component_vec!(Position::default())),
+				(TypeId::of::<Health>(), component_vec!(Health::default())),
 			]),
 			..Default::default()
 		}
