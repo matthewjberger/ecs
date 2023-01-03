@@ -19,7 +19,6 @@ use std::{
 pub type ComponentMap = BTreeMap<TypeId, ComponentVecHandle>;
 
 pub type Entity = Handle;
-pub type ComponentSetHash = u16;
 pub type ComponentVecHandle = Rc<RefCell<ComponentVec>>;
 pub type Component = Box<dyn std::any::Any + 'static>;
 pub type ComponentVec = GenerationalVec<Component>;
@@ -188,17 +187,6 @@ impl World {
 	pub fn entity_exists(&self, entity: Entity) -> bool {
 		self.allocator.is_allocated(&entity)
 	}
-
-	pub fn hash_entity(&self, entity: Entity) -> ComponentSetHash {
-		self.components
-			.values()
-			.enumerate()
-			.fold(0, |mut hash, (offset, components)| {
-				let value = ComponentSetHash::from(entity_has_component(entity, components));
-				hash |= value << offset;
-				hash
-			})
-	}
 }
 
 pub fn entity_has_component(entity: Entity, components: &ComponentVecHandle) -> bool {
@@ -305,26 +293,6 @@ mod tests {
 			*world.get_component::<Position>(entity).unwrap(),
 			Position { x: 10.0, y: 10.0 }
 		);
-
-		Ok(())
-	}
-
-	#[test]
-	fn entity_hashes() -> Result<()> {
-		let mut world = World::default();
-		let entity = world.create_entity();
-
-		world.add_component(entity, Position::default())?;
-		assert_eq!(1, world.hash_entity(entity));
-
-		world.add_component(entity, Health { value: 10 })?;
-		assert_eq!(0b11, world.hash_entity(entity));
-
-		world.remove_component::<Health>(entity)?;
-		assert_eq!(0b10, world.hash_entity(entity));
-
-		world.remove_component::<Position>(entity)?;
-		assert_eq!(0, world.hash_entity(entity));
 
 		Ok(())
 	}
