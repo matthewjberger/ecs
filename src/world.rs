@@ -47,6 +47,33 @@ macro_rules! zip{
     ($x: expr, $($y: expr), +) => ($x.zip(zip!($($y), +)))
 }
 
+#[macro_export]
+macro_rules! system {
+    ($system_name:tt, ($($component_name:ident: $component_type:ty),*){$($body:tt)*}) => {
+		fn $system_name(world: &mut World) {
+			zip!(
+				$(
+					world.get_component_vec_mut::<$component_type>().iter_mut()
+				),*
+			)
+			.enumerate()
+			.filter_map(|(entity, ($($component_name),*))| match ($($component_name,)*) {
+				($(Some($component_name),)*) => {
+					$(
+						let $component_name = $component_name.downcast_mut::<$component_type>().unwrap();
+					)*
+					Some((entity, ($( $component_name,)*)))
+				},
+				_ => None,
+			})
+			.into_iter()
+			.for_each(|(_entity, ($(mut $component_name),*))| {
+				$($body)*
+			});
+		}
+    }
+}
+
 #[derive(Default)]
 pub struct World {
 	resources: ResourceMap,
@@ -196,6 +223,12 @@ mod tests {
 
 	struct Name(String);
 
+	// Translate only named entities
+	system!(translation_system, (position: Position, _name: Name) {
+		position.x += 10.0;
+		position.y += 10.0;
+	});
+
 	#[test]
 	fn entity() -> Result<()> {
 		let mut world = World::default();
@@ -264,27 +297,9 @@ mod tests {
 		let mut world = World::default();
 		let entity = world.create_entity();
 		world.add_component(entity, Position::default())?;
-		world.add_component(entity, Health { value: 10 })?;
+		world.add_component(entity, Name("Tyrell Wellick".to_string()))?;
 
-		// TODO: Abstract system creation with macros/generics
-		zip!(
-			world.get_component_vec_mut::<Position>().iter_mut(),
-			world.get_component_vec::<Health>().iter()
-		)
-		.enumerate()
-		.filter_map(|(entity, (position, health))| {
-			let position = position.as_mut().and_then(|p| p.downcast_mut::<Position>());
-			let health = health.as_ref().and_then(|h| h.downcast_ref::<Health>());
-			match (position, health) {
-				(Some(position), Some(health)) => Some((entity, (position, health))),
-				_ => None,
-			}
-		})
-		.into_iter()
-		.for_each(|(_entity, (position, _health))| {
-			position.x = 10.0;
-			position.y = 10.0;
-		});
+		translation_system(&mut world);
 
 		assert_eq!(
 			*world.get_component::<Position>(entity).unwrap(),

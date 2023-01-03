@@ -1,7 +1,9 @@
+use std::ops::DerefMut;
+
 use anyhow::Result;
 use kiss3d::{camera::ArcBall, light::Light, scene::SceneNode, window::Window};
 use nalgebra::{Point3, UnitQuaternion, Vector3};
-use parsecs::{world::World, zip};
+use parsecs::{system, world::World, zip};
 use rand::Rng;
 
 pub struct Render(pub SceneNode);
@@ -10,12 +12,12 @@ fn main() -> Result<()> {
 	let mut window = Window::new("Entity-Component-System Architecture Demo");
 	window.set_light(Light::StickToCamera);
 
-	let world = create_world(&mut window);
+	let mut world = create_world(&mut window);
 
 	let mut arc_ball = create_camera();
 
 	while window.render_with_camera(&mut arc_ball) {
-		rotation_system(&world);
+		rotation_system(&mut world);
 	}
 
 	Ok(())
@@ -42,17 +44,9 @@ fn create_world(window: &mut Window) -> World {
 	world
 }
 
-fn rotation_system(world: &World) {
-	let rotation = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.014);
-	zip!(world.get_component_vec_mut::<Render>().iter_mut())
-		.enumerate()
-		.filter_map(|(entity, render)| {
-			let render = render.as_mut().and_then(|p| p.downcast_mut::<Render>());
-			render.map(|render| (entity, render))
-		})
-		.into_iter()
-		.for_each(|(_entity, render)| render.0.prepend_to_local_rotation(&rotation));
-}
+system!(rotation_system, (render: Render) {
+	render.0.deref_mut().0.prepend_to_local_rotation(&UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.014))
+});
 
 fn create_camera() -> ArcBall {
 	let eye = Point3::new(10.0, 10.0, 10.0);
