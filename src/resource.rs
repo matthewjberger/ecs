@@ -28,8 +28,7 @@ impl ResourceMap {
 	/// Set the value contained in the map for the type `T`.
 	/// This will override any previous value stored.
 	pub fn add<T: 'static>(&mut self, value: T) {
-		self.data
-			.insert(TypeId::of::<T>(), Box::new(value) as Box<dyn Any + 'static>);
+		self.data.insert(TypeId::of::<T>(), Box::new(value) as _);
 	}
 
 	/// Remove the value for the type `T` if it existed.
