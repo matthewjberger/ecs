@@ -16,9 +16,10 @@ use std::{
    Physics Components   -> Vec( Some(Physics { vel: 3 }),      None,      None,                            Some(Physics { vel: 04 }) )
    Position Components  -> Vec( Some(Position { x: 3, y: 3 }), None,      Some(Position { x: 10, y: -2 }), Some(Position { x: 100, y: -20 }) )
 */
+pub type ComponentMap = BTreeMap<TypeId, ComponentVecHandle>;
+
 pub type Entity = Handle;
 pub type ComponentSetHash = u16;
-pub type ComponentMap = BTreeMap<TypeId, ComponentVecHandle>;
 pub type ComponentVecHandle = Rc<RefCell<ComponentVec>>;
 pub type Component = Box<dyn std::any::Any + 'static>;
 pub type ComponentVec = GenerationalVec<Component>;
