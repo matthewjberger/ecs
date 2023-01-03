@@ -49,8 +49,8 @@ macro_rules! zip{
 
 #[macro_export]
 macro_rules! system {
-    ($system_name:tt, ($($arg:ident: $arg_type:ty),*), ($($component_name:ident: $component_type:ty),*){$($body:tt)*}) => {
-		fn $system_name(world: &mut World, $($arg: $arg_type)*) {
+    ($name:tt, ($($arg:ident: $arg_type:ty),*), ($($component_name:ident: $component_type:ty),*){$($body:tt)*}) => {
+		fn $name(world: &mut World, $($arg: $arg_type)*) {
 			zip!(
 				$(
 					world.get_component_vec_mut::<$component_type>().iter_mut()
