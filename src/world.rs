@@ -49,8 +49,8 @@ macro_rules! zip{
 
 #[macro_export]
 macro_rules! system {
-    ($system_name:tt, ($($component_name:ident: $component_type:ty),*){$($body:tt)*}) => {
-		fn $system_name(world: &mut World) {
+    ($system_name:tt, ($($arg:ident: $arg_type:ty),*), ($($component_name:ident: $component_type:ty),*){$($body:tt)*}) => {
+		fn $system_name(world: &mut World, $($arg: $arg_type)*) {
 			zip!(
 				$(
 					world.get_component_vec_mut::<$component_type>().iter_mut()
@@ -224,9 +224,9 @@ mod tests {
 	struct Name(String);
 
 	// Translate only named entities
-	system!(translation_system, (position: Position, _name: Name) {
-		position.x += 10.0;
-		position.y += 10.0;
+	system!(translation_system, (value: f32), (position: Position, _name: Name) {
+		position.x += value;
+		position.y += value;
 	});
 
 	#[test]
@@ -299,7 +299,7 @@ mod tests {
 		world.add_component(entity, Position::default())?;
 		world.add_component(entity, Name("Tyrell Wellick".to_string()))?;
 
-		translation_system(&mut world);
+		translation_system(&mut world, 10.0);
 
 		assert_eq!(
 			*world.get_component::<Position>(entity).unwrap(),

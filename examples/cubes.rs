@@ -44,7 +44,7 @@ fn create_world(window: &mut Window) -> World {
 	world
 }
 
-system!(rotation_system, (render: Render) {
+system!(rotation_system, (), (render: Render) {
 	render.0.deref_mut().0.prepend_to_local_rotation(&UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.014))
 });
 
