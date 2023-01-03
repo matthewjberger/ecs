@@ -17,7 +17,7 @@ fn main() -> Result<()> {
 	let mut arc_ball = create_camera();
 
 	while window.render_with_camera(&mut arc_ball) {
-		rotation_system(&mut world);
+		rotation_system(&mut world, 0.014);
 	}
 
 	Ok(())
@@ -44,8 +44,8 @@ fn create_world(window: &mut Window) -> World {
 	world
 }
 
-system!(rotation_system, (), (render: Render) {
-	render.0.deref_mut().0.prepend_to_local_rotation(&UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.014))
+system!(rotation_system, (value: f32), (render: Render) {
+	render.0.deref_mut().0.prepend_to_local_rotation(&UnitQuaternion::from_axis_angle(&Vector3::y_axis(), value))
 });
 
 fn create_camera() -> ArcBall {
