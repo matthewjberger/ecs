@@ -1,10 +1,9 @@
-use std::ops::DerefMut;
-
 use anyhow::Result;
 use kiss3d::{camera::ArcBall, light::Light, scene::SceneNode, window::Window};
 use nalgebra::{Point3, UnitQuaternion, Vector3};
 use parsecs::{system, world::World, zip};
 use rand::Rng;
+use std::ops::DerefMut;
 
 pub struct Render(pub SceneNode);
 
