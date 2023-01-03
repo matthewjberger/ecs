@@ -162,6 +162,7 @@ impl World {
 	}
 
 	pub fn hash_entity(&self, entity: Entity) -> EntityHash {
+		// TODO: hashmap keys are not ordered so this is incorrect right now
 		self.components
 			.values()
 			.enumerate()
