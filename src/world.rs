@@ -17,7 +17,7 @@ use std::{
    Position Components  -> Vec( Some(Position { x: 3, y: 3 }), None,      Some(Position { x: 10, y: -2 }), Some(Position { x: 100, y: -20 }) )
 */
 pub type Entity = Handle;
-pub type EntityHash = u16;
+pub type ComponentSetHash = u16;
 pub type ComponentMap = BTreeMap<TypeId, ComponentVecHandle>;
 pub type ComponentVecHandle = Rc<RefCell<ComponentVec>>;
 pub type Component = Box<dyn std::any::Any + 'static>;
@@ -161,12 +161,12 @@ impl World {
 		self.allocator.is_allocated(&entity)
 	}
 
-	pub fn hash_entity(&self, entity: Entity) -> EntityHash {
+	pub fn hash_entity(&self, entity: Entity) -> ComponentSetHash {
 		self.components
 			.values()
 			.enumerate()
 			.fold(0, |mut hash, (offset, components)| {
-				let value = EntityHash::from(entity_has_component(entity, components));
+				let value = ComponentSetHash::from(entity_has_component(entity, components));
 				hash |= value << offset;
 				hash
 			})
@@ -180,7 +180,6 @@ pub fn entity_has_component(entity: Entity, components: &ComponentVecHandle) -> 
 #[cfg(test)]
 mod tests {
 	use super::*;
-
 	use std::ops::DerefMut;
 
 	#[derive(Debug, Default, PartialEq, Copy, Clone)]
@@ -300,13 +299,16 @@ mod tests {
 		let entity = world.create_entity();
 
 		world.add_component(entity, Position::default())?;
-		assert_eq!(0b1, world.hash_entity(entity));
+		assert_eq!(1, world.hash_entity(entity));
 
 		world.add_component(entity, Health { value: 10 })?;
 		assert_eq!(0b11, world.hash_entity(entity));
 
+		world.remove_component::<Health>(entity)?;
+		assert_eq!(0b10, world.hash_entity(entity));
+
 		world.remove_component::<Position>(entity)?;
-		assert_eq!(0b1, world.hash_entity(entity));
+		assert_eq!(0, world.hash_entity(entity));
 
 		Ok(())
 	}

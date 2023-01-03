@@ -34,7 +34,7 @@ pub mod error {
 
 pub type SlotVec<T> = Vec<Option<Slot<T>>>;
 
-#[derive(Default, Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Default, Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct Handle {
 	index: usize,
 	generation: usize,
