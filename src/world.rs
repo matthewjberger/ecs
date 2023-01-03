@@ -1,15 +1,44 @@
 use crate::{
-	component::{entity_has_component, Component, ComponentMap, ComponentVec, Entity},
 	error::Result,
 	resource::ResourceMap,
-	vec::{error::HandleNotFoundError, HandleAllocator},
+	vec::{error::HandleNotFoundError, GenerationalVec, Handle, HandleAllocator, SlotVec},
 };
 use std::{
 	any::TypeId,
 	cell::{Ref, RefCell, RefMut},
+	collections::HashMap,
 	ops::Deref,
 	rc::Rc,
 };
+
+/*
+   Entities:                    Entity 0                       Entity 1   Entity 2                         Entity 3
+   Physics Components   -> Vec( Some(Physics { vel: 3 }),      None,      None,                            Some(Physics { vel: 04 }) )
+   Position Components  -> Vec( Some(Position { x: 3, y: 3 }), None,      Some(Position { x: 10, y: -2 }), Some(Position { x: 100, y: -20 }) )
+*/
+pub type Entity = Handle;
+pub type EntityHash = u16;
+pub type ComponentMap = HashMap<TypeId, ComponentVecHandle>;
+pub type ComponentVecHandle = Rc<RefCell<ComponentVec>>;
+pub type Component = Box<dyn std::any::Any + 'static>;
+pub type ComponentVec = GenerationalVec<Component>;
+
+impl Default for ComponentVec {
+	fn default() -> Self {
+		GenerationalVec::new(SlotVec::<Component>::default())
+	}
+}
+
+#[macro_export]
+macro_rules! component_vec {
+    ($($component:expr),*) => {
+        {
+			use std::{rc::Rc, cell::RefCell};
+			use $crate::world::ComponentVec;
+            Rc::new(RefCell::new(ComponentVec::new(vec![$(Some($crate::vec::Slot::new(Box::new($component), 0)),)*])))
+        }
+    }
+}
 
 #[macro_export]
 macro_rules! zip{
@@ -93,12 +122,14 @@ impl World {
 		if !self.entity_exists(entity) {
 			return None;
 		}
-		self.components.get(&TypeId::of::<T>()).and_then(|c| {
-			if !entity_has_component::<T>(entity, c) {
+		self.components.get(&TypeId::of::<T>()).and_then(|component_vec| {
+			if !entity_has_component(entity, component_vec) {
 				return None;
 			}
-			Some(Ref::map(c.borrow(), |t| {
-				t.get(entity).and_then(|c| c.downcast_ref::<T>()).unwrap()
+			Some(Ref::map(component_vec.borrow(), |t| {
+				t.get(entity)
+					.and_then(|component| component.downcast_ref::<T>())
+					.unwrap()
 			}))
 		})
 	}
@@ -108,11 +139,11 @@ impl World {
 		if !self.entity_exists(entity) {
 			return None;
 		}
-		self.components.get(&TypeId::of::<T>()).and_then(|c| {
-			if !entity_has_component::<T>(entity, c) {
+		self.components.get(&TypeId::of::<T>()).and_then(|component_vec| {
+			if !entity_has_component(entity, component_vec) {
 				return None;
 			}
-			Some(RefMut::map(c.borrow_mut(), |t| {
+			Some(RefMut::map(component_vec.borrow_mut(), |t| {
 				t.get_mut(entity).and_then(|c| c.downcast_mut::<T>()).unwrap()
 			}))
 		})
@@ -129,6 +160,21 @@ impl World {
 	pub fn entity_exists(&self, entity: Entity) -> bool {
 		self.allocator.is_allocated(&entity)
 	}
+
+	pub fn hash_entity(&self, entity: Entity) -> EntityHash {
+		self.components
+			.values()
+			.enumerate()
+			.fold(0, |mut hash, (offset, components)| {
+				let value = EntityHash::from(entity_has_component(entity, components));
+				hash |= value << offset;
+				hash
+			})
+	}
+}
+
+pub fn entity_has_component(entity: Entity, components: &ComponentVecHandle) -> bool {
+	components.borrow().get(entity).is_some()
 }
 
 #[cfg(test)]
@@ -147,6 +193,8 @@ mod tests {
 	pub struct Health {
 		value: u8,
 	}
+
+	struct Name(String);
 
 	#[test]
 	fn entity() -> Result<()> {
@@ -242,6 +290,35 @@ mod tests {
 			*world.get_component::<Position>(entity).unwrap(),
 			Position { x: 10.0, y: 10.0 }
 		);
+
+		Ok(())
+	}
+
+	#[test]
+	fn entity_hashes() -> Result<()> {
+		let mut world = World::default();
+		let entity = world.create_entity();
+
+		world.add_component(entity, Position::default())?;
+		assert_eq!(0b1, world.hash_entity(entity));
+
+		world.add_component(entity, Health { value: 10 })?;
+		assert_eq!(0b11, world.hash_entity(entity));
+
+		Ok(())
+	}
+
+	#[test]
+	fn component_exists() -> Result<()> {
+		let mut entity_allocator = HandleAllocator::new();
+		let entity = entity_allocator.allocate();
+
+		let components = component_vec!();
+		components
+			.borrow_mut()
+			.insert(entity, Box::new(Name("Elliot Alderson".to_string())))?;
+
+		assert!(entity_has_component(entity, &components));
 
 		Ok(())
 	}
