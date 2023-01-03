@@ -6,7 +6,7 @@ use crate::{
 use std::{
 	any::TypeId,
 	cell::{Ref, RefCell, RefMut},
-	collections::HashMap,
+	collections::BTreeMap,
 	ops::Deref,
 	rc::Rc,
 };
@@ -18,7 +18,7 @@ use std::{
 */
 pub type Entity = Handle;
 pub type EntityHash = u16;
-pub type ComponentMap = HashMap<TypeId, ComponentVecHandle>;
+pub type ComponentMap = BTreeMap<TypeId, ComponentVecHandle>;
 pub type ComponentVecHandle = Rc<RefCell<ComponentVec>>;
 pub type Component = Box<dyn std::any::Any + 'static>;
 pub type ComponentVec = GenerationalVec<Component>;
@@ -162,7 +162,6 @@ impl World {
 	}
 
 	pub fn hash_entity(&self, entity: Entity) -> EntityHash {
-		// TODO: hashmap keys are not ordered so this is incorrect right now
 		self.components
 			.values()
 			.enumerate()
@@ -305,6 +304,9 @@ mod tests {
 
 		world.add_component(entity, Health { value: 10 })?;
 		assert_eq!(0b11, world.hash_entity(entity));
+
+		world.remove_component::<Position>(entity)?;
+		assert_eq!(0b1, world.hash_entity(entity));
 
 		Ok(())
 	}
