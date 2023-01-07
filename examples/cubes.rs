@@ -59,7 +59,7 @@ impl ColorSystem {
 		}
 	}
 
-	system!(run, (self: &mut Self), (node: SceneNode) {
+	system!(run, (self: &Self), (node: SceneNode) {
 		let time = (SystemTime::now().duration_since(UNIX_EPOCH).unwrap() - self.start_time).as_secs_f32();
 		node.set_color(time.sin(), time.cos(), 0.5);
 	});
