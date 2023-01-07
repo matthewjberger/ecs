@@ -78,6 +78,8 @@ macro_rules! izip {
     };
 }
 
+// TODO: Add resource access to systems via a Rc<RefCell<>>
+
 #[macro_export]
 macro_rules! system {
     ($name:tt, ($($arg:ident: $arg_type:ty),*), ($component_name:ident: $component_type:ty){$($body:tt)*}) => {
