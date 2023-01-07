@@ -261,7 +261,7 @@ mod tests {
 	struct Name(String);
 
 	// Translate only named entities
-	system!(translation_system, (value: f32), (position: Position, _name: Name) {
+	system!(translation_system, (value: f32), (position: Position, _name: Name, _health: Health) {
 		position.x += value;
 		position.y += value;
 	});
@@ -334,6 +334,7 @@ mod tests {
 		let mut world = World::default();
 		let entity = world.create_entity();
 		world.add_component(entity, Position::default())?;
+		world.add_component(entity, Health::default())?;
 		world.add_component(entity, Name("Tyrell Wellick".to_string()))?;
 
 		translation_system(&mut world, 10.0);
