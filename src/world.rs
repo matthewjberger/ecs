@@ -81,7 +81,7 @@ macro_rules! izip {
 #[macro_export]
 macro_rules! system {
     ($name:tt, ($($arg:ident: $arg_type:ty),*), ($component_name:ident: $component_type:ty){$($body:tt)*}) => {
-		fn $name(world: &mut World, $($arg: $arg_type)*) {
+		pub fn $name($($arg: $arg_type,)* world: &mut World) {
 			world.get_component_vec_mut::<$component_type>()
 			.iter_mut()
 			.enumerate()
@@ -99,7 +99,7 @@ macro_rules! system {
     };
 
     ($name:tt, ($($arg:ident: $arg_type:ty),*), ($($component_name:ident: $component_type:ty),*){$($body:tt)*}) => {
-		fn $name(world: &mut World, $($arg: $arg_type)*) {
+		pub fn $name($($arg: $arg_type,)* world: &mut World) {
 			izip!(
 				$(
 					world.get_component_vec_mut::<$component_type>().iter_mut()
@@ -337,7 +337,7 @@ mod tests {
 		world.add_component(entity, Health::default())?;
 		world.add_component(entity, Name("Tyrell Wellick".to_string()))?;
 
-		translation_system(&mut world, 10.0);
+		translation_system(10.0, &mut world);
 
 		assert_eq!(
 			*world.get_component::<Position>(entity).unwrap(),
