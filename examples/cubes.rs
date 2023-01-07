@@ -1,10 +1,9 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
 use anyhow::Result;
 use kiss3d::{camera::ArcBall, light::Light, scene::SceneNode, window::Window};
 use nalgebra::{Point3, UnitQuaternion, Vector3};
 use parsecs::{system, world::World};
 use rand::Rng;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 fn main() -> Result<()> {
 	let mut window = Window::new("Entity-Component-System Architecture Demo");
@@ -14,7 +13,7 @@ fn main() -> Result<()> {
 
 	let mut arc_ball = create_camera();
 
-	let mut color_system = ColorSystem::new();
+	let color_system = ColorSystem::new();
 	while window.render_with_camera(&mut arc_ball) {
 		rotation_system(0.014, &mut world);
 		color_system.run(&mut world);
