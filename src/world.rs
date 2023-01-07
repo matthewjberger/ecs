@@ -221,6 +221,8 @@ impl World {
 		})
 	}
 
+	// TODO: If no entity has been inserted into world containing a T component,
+	//       the vec will not exist and the unwrap will fail. Need to handle the unwraps
 	pub fn get_component_vec<T: 'static>(&self) -> Ref<ComponentVec> {
 		self.components.get(&TypeId::of::<T>()).unwrap().deref().borrow()
 	}
