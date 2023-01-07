@@ -207,6 +207,18 @@ impl HandleAllocator {
 	pub fn handle_exists(&self, handle: &Handle) -> bool {
 		handle.index < self.allocations.len()
 	}
+
+	pub fn allocated_handles(&self) -> Vec<Handle> {
+		self.allocations
+			.iter()
+			.enumerate()
+			.filter(|(_, allocation)| allocation.allocated)
+			.map(|(index, allocation)| Handle {
+				index,
+				generation: allocation.generation,
+			})
+			.collect()
+	}
 }
 
 #[cfg(test)]
@@ -219,27 +231,49 @@ mod tests {
 		let mut elements = GenerationalVec::new(SlotVec::<u32>::default());
 		let mut handle_allocator = HandleAllocator::new();
 
+		// allocate a handle
 		let handle = handle_allocator.allocate();
-		assert!(handle_allocator.is_allocated(&handle));
-
 		elements.insert(handle, 3)?;
 		assert_eq!(elements.get(handle), Some(&3));
 
+		// modify an existing handle
 		if let Some(element) = elements.get_mut(handle) {
 			*element = 10;
 		}
 		assert_eq!(elements.get(handle), Some(&10));
 
+		// Clear a handle's slot
 		elements.remove(handle);
 		assert_eq!(elements.get(handle), None);
 
+		// Deallocate a handle
 		handle_allocator.deallocate(&handle);
 		assert!(!handle_allocator.is_allocated(&handle));
 
 		// This assures that the "A->B->A" problem is addressed
 		let next_handle = handle_allocator.allocate();
-		assert_eq!(*next_handle.index(), *handle.index());
-		assert_eq!(*next_handle.generation(), *handle.generation() + 1);
+		assert_eq!(
+			next_handle,
+			Handle {
+				index: handle.index,
+				generation: handle.index + 1,
+			}
+		);
+
+		Ok(())
+	}
+
+	#[test]
+	fn allocated_handles() -> Result<()> {
+		let mut handle_allocator = HandleAllocator::new();
+
+		let first_handle = handle_allocator.allocate();
+		assert!(handle_allocator.is_allocated(&first_handle));
+		assert_eq!(handle_allocator.allocated_handles(), &[first_handle]);
+
+		let second_handle = handle_allocator.allocate();
+		assert!(handle_allocator.is_allocated(&second_handle));
+		assert_eq!(handle_allocator.allocated_handles(), &[first_handle, second_handle]);
 
 		Ok(())
 	}

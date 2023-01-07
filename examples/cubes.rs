@@ -1,11 +1,8 @@
 use anyhow::Result;
 use kiss3d::{camera::ArcBall, light::Light, scene::SceneNode, window::Window};
 use nalgebra::{Point3, UnitQuaternion, Vector3};
-use parsecs::{system, world::World, zip};
+use parsecs::{system, world::World};
 use rand::Rng;
-use std::ops::DerefMut;
-
-pub struct Render(pub SceneNode);
 
 fn main() -> Result<()> {
 	let mut window = Window::new("Entity-Component-System Architecture Demo");
@@ -38,13 +35,13 @@ fn create_world(window: &mut Window) -> World {
 			]
 			.into(),
 		);
-		world.add_component(entity, Render(node)).unwrap();
+		world.add_component(entity, node).unwrap();
 	}
 	world
 }
 
-system!(rotation_system, (value: f32), (render: Render) {
-	render.0.deref_mut().0.prepend_to_local_rotation(&UnitQuaternion::from_axis_angle(&Vector3::y_axis(), value))
+system!(rotation_system, (value: f32), (node: SceneNode) {
+	node.prepend_to_local_rotation(&UnitQuaternion::from_axis_angle(&Vector3::y_axis(), value))
 });
 
 fn create_camera() -> ArcBall {

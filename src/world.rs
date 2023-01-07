@@ -6,7 +6,7 @@ use crate::{
 use std::{
 	any::TypeId,
 	cell::{Ref, RefCell, RefMut},
-	collections::BTreeMap,
+	collections::HashMap,
 	ops::Deref,
 	rc::Rc,
 };
@@ -16,7 +16,7 @@ use std::{
    Physics Components   -> Vec( Some(Physics { vel: 3 }),      None,      None,                            Some(Physics { vel: 04 }) )
    Position Components  -> Vec( Some(Position { x: 3, y: 3 }), None,      Some(Position { x: 10, y: -2 }), Some(Position { x: 100, y: -20 }) )
 */
-pub type ComponentMap = BTreeMap<TypeId, ComponentVecHandle>;
+pub type ComponentMap = HashMap<TypeId, ComponentVecHandle>;
 
 pub type Entity = Handle;
 pub type ComponentVecHandle = Rc<RefCell<ComponentVec>>;
@@ -40,17 +40,67 @@ macro_rules! component_vec {
     }
 }
 
+// from itertools
 #[macro_export]
-macro_rules! zip{
-    ($x: expr) => ($x);
-    ($x: expr, $($y: expr), +) => ($x.zip(zip!($($y), +)))
+macro_rules! izip {
+    // @closure creates a tuple-flattening closure for .map() call. usage:
+    // @closure partial_pattern => partial_tuple , rest , of , iterators
+    // eg. izip!( @closure ((a, b), c) => (a, b, c) , dd , ee )
+    ( @closure $p:pat => $tup:expr ) => {
+        |$p| $tup
+    };
+
+    // The "b" identifier is a different identifier on each recursion level thanks to hygiene.
+    ( @closure $p:pat => ( $($tup:tt)* ) , $_iter:expr $( , $tail:expr )* ) => {
+        $crate::izip!(@closure ($p, b) => ( $($tup)*, b ) $( , $tail )*)
+    };
+
+    // unary
+    ($first:expr $(,)*) => {
+        std::iter::IntoIterator::into_iter($first)
+    };
+
+    // binary
+    ($first:expr, $second:expr $(,)*) => {
+        $crate::izip!($first)
+            .zip($second)
+    };
+
+    // n-ary where n > 2
+    ( $first:expr $( , $rest:expr )* $(,)* ) => {
+        $crate::izip!($first)
+            $(
+                .zip($rest)
+            )*
+            .map(
+                $crate::izip!(@closure a => (a) $( , $rest )*)
+            )
+    };
 }
 
 #[macro_export]
 macro_rules! system {
+    ($name:tt, ($($arg:ident: $arg_type:ty),*), ($component_name:ident: $component_type:ty){$($body:tt)*}) => {
+		fn $name(world: &mut World, $($arg: $arg_type)*) {
+			world.get_component_vec_mut::<$component_type>()
+			.iter_mut()
+			.enumerate()
+			.filter_map(|(entity, $component_name)| match $component_name {
+				Some($component_name) => {
+					let $component_name = $component_name.downcast_mut::<$component_type>().unwrap();
+					Some((entity, $component_name))
+				},
+				_ => None,
+			})
+			.for_each(|(_entity, mut $component_name)| {
+				$($body)*
+			});
+		}
+    };
+
     ($name:tt, ($($arg:ident: $arg_type:ty),*), ($($component_name:ident: $component_type:ty),*){$($body:tt)*}) => {
 		fn $name(world: &mut World, $($arg: $arg_type)*) {
-			zip!(
+			izip!(
 				$(
 					world.get_component_vec_mut::<$component_type>().iter_mut()
 				),*
@@ -65,7 +115,6 @@ macro_rules! system {
 				},
 				_ => None,
 			})
-			.into_iter()
 			.for_each(|(_entity, ($(mut $component_name),*))| {
 				$($body)*
 			});
