@@ -27,7 +27,7 @@ impl ResourceMap {
 
 	/// Set the value contained in the map for the type `T`.
 	/// This will override any previous value stored.
-	pub fn add<T: 'static>(&mut self, value: T) {
+	pub fn insert<T: 'static>(&mut self, value: T) {
 		self.data.insert(TypeId::of::<T>(), Box::new(value) as _);
 	}
 
@@ -51,7 +51,7 @@ mod tests {
 	fn resources() {
 		let mut resources = ResourceMap::new();
 
-		resources.add(Viewport::default());
+		resources.insert(Viewport::default());
 		assert_eq!(resources.get::<Viewport>(), Some(&Viewport::default()));
 
 		let (width, height) = (1920, 1080);

@@ -78,11 +78,9 @@ macro_rules! izip {
     };
 }
 
-// TODO: Add resource access to systems via a Rc<RefCell<>>
-
 #[macro_export]
 macro_rules! system {
-    ($name:tt, ($($arg:ident: $arg_type:ty),*), ($component_name:ident: $component_type:ty){$($body:tt)*}) => {
+    ($name:tt, [$resources:ident, $entity:ident], ($($arg:ident: $arg_type:ty),*), ($component_name:ident: $component_type:ty){$($body:tt)*}) => {
 		pub fn $name($($arg: $arg_type,)* world: &mut World) {
 			world.get_component_vec_mut::<$component_type>()
 			.iter_mut()
@@ -90,17 +88,17 @@ macro_rules! system {
 			.filter_map(|(entity, $component_name)| match $component_name {
 				Some($component_name) => {
 					let $component_name = $component_name.downcast_mut::<$component_type>().unwrap();
-					Some((entity, $component_name))
+					Some((world.resources().clone(), entity, $component_name))
 				},
 				_ => None,
 			})
-			.for_each(|(_entity, mut $component_name)| {
+			.for_each(|($resources, $entity, mut $component_name)| {
 				$($body)*
 			});
 		}
     };
 
-    ($name:tt, ($($arg:ident: $arg_type:ty),*), ($($component_name:ident: $component_type:ty),*){$($body:tt)*}) => {
+    ($name:tt, [$resources:ident, $entity:ident], ($($arg:ident: $arg_type:ty),*), ($($component_name:ident: $component_type:ty),*){$($body:tt)*}) => {
 		pub fn $name($($arg: $arg_type,)* world: &mut World) {
 			izip!(
 				$(
@@ -113,11 +111,11 @@ macro_rules! system {
 					$(
 						let $component_name = $component_name.downcast_mut::<$component_type>().unwrap();
 					)*
-					Some((entity, ($( $component_name,)*)))
+					Some((world.resources().clone(), entity, $( $component_name,)*))
 				},
 				_ => None,
 			})
-			.for_each(|(_entity, ($(mut $component_name),*))| {
+			.for_each(|($resources, $entity, $(mut $component_name,)*)| {
 				$($body)*
 			});
 		}
@@ -126,7 +124,7 @@ macro_rules! system {
 
 #[derive(Default)]
 pub struct World {
-	resources: ResourceMap,
+	resources: Rc<RefCell<ResourceMap>>,
 	components: ComponentMap,
 	allocator: HandleAllocator,
 }
@@ -136,12 +134,8 @@ impl World {
 		Self::default()
 	}
 
-	pub const fn resources(&self) -> &ResourceMap {
+	pub const fn resources(&self) -> &Rc<RefCell<ResourceMap>> {
 		&self.resources
-	}
-
-	pub fn resources_mut(&mut self) -> &mut ResourceMap {
-		&mut self.resources
 	}
 
 	pub fn create_entity(&mut self) -> Entity {
@@ -263,9 +257,17 @@ mod tests {
 	struct Name(String);
 
 	// Translate only named entities
-	system!(translation_system, (value: f32), (position: Position, _name: Name, _health: Health) {
+	system!(translation_system, [_resources, _entity], (value: f32), (position: Position, _name: Name, _health: Health) {
 		position.x += value;
 		position.y += value;
+	});
+
+	#[derive(Debug, PartialEq)]
+	struct DeltaTime(f32);
+
+	// This runs for each entity but ensures we can access and mutate resources from systems
+	system!(resource_system, [resources, _entity], (value: f32), (_position: Position) {
+		resources.borrow_mut().insert(DeltaTime(value));
 	});
 
 	#[test]
@@ -273,9 +275,9 @@ mod tests {
 		let mut world = World::default();
 		let entity = world.create_entity();
 		world.add_component(entity, Position::default())?;
-		assert!(world.get_component::<Position>(entity).as_deref().is_some());
+		assert!(world.get_component::<Position>(entity).is_some());
 		world.remove_entity(entity);
-		assert_eq!(world.get_component::<Position>(entity).as_deref(), None);
+		assert!(world.get_component::<Position>(entity).is_none());
 		Ok(())
 	}
 
@@ -283,13 +285,19 @@ mod tests {
 	fn add_component() -> Result<()> {
 		let mut world = World::default();
 		let entity = world.create_entity();
-		assert_eq!(world.get_component::<Position>(entity).as_deref(), None);
-		assert_eq!(world.get_component::<Health>(entity).as_deref(), None);
+		assert!(world.get_component::<Position>(entity).is_none());
+		assert!(world.get_component::<Health>(entity).is_none());
 		world.add_component(entity, Position::default())?;
 		world.add_component(entity, Health { value: 10 })?;
 		world.get_component_mut::<Health>(entity).unwrap().value = 0;
-		assert_eq!(*world.get_component::<Position>(entity).unwrap(), Position::default());
-		assert_eq!(*world.get_component::<Health>(entity).unwrap(), Health { value: 0 });
+		assert_eq!(
+			world.get_component::<Position>(entity).as_deref(),
+			Some(&Position::default())
+		);
+		assert_eq!(
+			world.get_component::<Health>(entity).as_deref(),
+			Some(&Health { value: 0 })
+		);
 		Ok(())
 	}
 
@@ -342,8 +350,8 @@ mod tests {
 		translation_system(10.0, &mut world);
 
 		assert_eq!(
-			*world.get_component::<Position>(entity).unwrap(),
-			Position { x: 10.0, y: 10.0 }
+			world.get_component::<Position>(entity).as_deref(),
+			Some(&Position { x: 10.0, y: 10.0 })
 		);
 
 		Ok(())
@@ -361,6 +369,30 @@ mod tests {
 
 		assert!(entity_has_component(entity, &components));
 
+		Ok(())
+	}
+
+	#[test]
+	fn system_resources() -> Result<()> {
+		let mut world = World::default();
+
+		let entity = world.create_entity();
+		world.add_component(entity, Position::default())?;
+
+		let value = 0.18;
+		resource_system(value, &mut world);
+
+		assert_eq!(world.resources().borrow().get::<DeltaTime>(), Some(&DeltaTime(value)));
+
+		Ok(())
+	}
+
+	#[test]
+	fn resources() -> Result<()> {
+		let world = World::default();
+		let value = 0.18;
+		world.resources.borrow_mut().insert(DeltaTime(value));
+		assert_eq!(world.resources().borrow().get::<DeltaTime>(), Some(&DeltaTime(value)));
 		Ok(())
 	}
 }

@@ -43,7 +43,7 @@ fn create_world(window: &mut Window) -> World {
 	world
 }
 
-system!(rotation_system, (value: f32), (node: SceneNode) {
+system!(rotation_system, [_resources, _entity], (value: f32), (node: SceneNode) {
 	node.prepend_to_local_rotation(&UnitQuaternion::from_axis_angle(&Vector3::y_axis(), value))
 });
 
@@ -58,7 +58,7 @@ impl ColorSystem {
 		}
 	}
 
-	system!(run, (self: &Self), (node: SceneNode) {
+	system!(run, [_resources, _entity], (self: &Self), (node: SceneNode) {
 		let time = (SystemTime::now().duration_since(UNIX_EPOCH).unwrap() - self.start_time).as_secs_f32();
 		node.set_color(time.sin(), time.cos(), 0.5);
 	});
