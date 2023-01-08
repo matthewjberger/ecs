@@ -178,10 +178,7 @@ impl HandleAllocator {
 				}
 			},
 			None => {
-				self.allocations.push(Allocation {
-					allocated: true,
-					generation: 0,
-				});
+				self.allocations.push(Allocation { allocated: true, generation: 0 });
 				Handle {
 					index: self.allocations.len() - 1,
 					generation: 0,

@@ -1,4 +1,4 @@
-max_width = 150
+max_width = 170
 comment_width = 100
 match_block_trailing_comma = true
 wrap_comments = true

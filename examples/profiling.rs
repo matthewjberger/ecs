@@ -37,11 +37,7 @@ fn profile_insertion() {
 		results
 	});
 	let average_duration = results.iter().map(|(_entities, duration)| duration.as_millis() as f32).sum::<f32>() / results.len() as f32;
-	println!(
-		"  - Creating 1 million entities: {}ms (average of {} runs).",
-		average_duration,
-		results.len()
-	);
+	println!("  - Creating 1 million entities: {}ms (average of {} runs).", average_duration, results.len());
 	println!("  - Creating 100 million entities: {}ms.", duration.as_millis());
 }
 

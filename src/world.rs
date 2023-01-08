@@ -227,15 +227,11 @@ impl World {
 	}
 
 	pub fn get_component_vec<T: 'static>(&self) -> Option<Ref<ComponentVec>> {
-		self.components
-			.get(&TypeId::of::<T>())
-			.map(|component_vec| component_vec.deref().borrow())
+		self.components.get(&TypeId::of::<T>()).map(|component_vec| component_vec.deref().borrow())
 	}
 
 	pub fn get_component_vec_mut<T: 'static>(&self) -> Option<RefMut<ComponentVec>> {
-		self.components
-			.get(&TypeId::of::<T>())
-			.map(|component_vec| component_vec.deref().borrow_mut())
+		self.components.get(&TypeId::of::<T>()).map(|component_vec| component_vec.deref().borrow_mut())
 	}
 
 	pub fn register_component<T: 'static>(&mut self) {
