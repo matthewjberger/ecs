@@ -86,11 +86,16 @@ macro_rules! izip {
     };
 }
 
+// TODO: make systems accessing unregistered components recoverable (maybe by auto registering
+// types)
 #[macro_export]
 macro_rules! system {
 	($fn:tt, [$resources:ident, $entity:ident], ($($arg:ident: $arg_type:ty),*), ($component_name:ident: $component_type:ty) -> $result:ty {$($body:tt)*}) => {
 		pub fn $fn($($arg: $arg_type,)* world: &mut World) -> $result {
-			world.get_component_vec_mut::<$component_type>().expect(r#"Component type not registered: '{$component_type}'"#).iter_mut()
+			world
+			.get_component_vec_mut::<$component_type>()
+			.unwrap_or_else(|| panic!("System accessed an unregistered component type: {:?}", stringify!($component_type)))
+			.iter_mut()
 			.enumerate()
 			.filter_map(|(entity, $component_name)| match ($component_name) {
 				Some($component_name) => {
@@ -109,7 +114,7 @@ macro_rules! system {
 		pub fn $fn($($arg: $arg_type,)* world: &mut World) -> $result {
 			izip!(
 				$(
-					world.get_component_vec_mut::<$component_type>().expect(r#"Component type not registered: '{$component_type}'"#).iter_mut()
+					world.get_component_vec_mut::<$component_type>().unwrap_or_else(|| panic!("System accessed an unregistered component type: {:?}", stringify!($component_type))).iter_mut()
 				),*
 			)
 			.enumerate()
@@ -394,6 +399,13 @@ mod tests {
 	#[should_panic]
 	fn unregistered_component() {
 		World::default().get_component_vec_mut::<Position>().unwrap();
+	}
+
+	#[test]
+	#[should_panic]
+	fn system_accessed_unregistered_component() {
+		let mut world = World::new();
+		translation_system(0.14, &mut world).unwrap();
 	}
 
 	#[test]
