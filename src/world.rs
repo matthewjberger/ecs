@@ -12,9 +12,9 @@ use std::{
 };
 
 /*
-   Entities:                    Entity 0                       Entity 1   Entity 2                         Entity 3
-   Physics Components   -> Vec( Some(Physics { vel: 3 }),      None,      None,                            Some(Physics { vel: 04 }) )
-   Position Components  -> Vec( Some(Position { x: 3, y: 3 }), None,      Some(Position { x: 10, y: -2 }), Some(Position { x: 100, y: -20 }) )
+	Entities:                    Entity 0                       Entity 1   Entity 2                         Entity 3
+	Physics Components   -> Vec( Some(Physics { vel: 3 }),      None,      None,                            Some(Physics { vel: 04 }) )
+	Position Components  -> Vec( Some(Position { x: 3, y: 3 }), None,      Some(Position { x: 10, y: -2 }), Some(Position { x: 100, y: -20 }) )
 */
 pub type ComponentMap = HashMap<TypeId, ComponentVecHandle>;
 
@@ -93,20 +93,20 @@ macro_rules! system {
 	($fn:tt, [$resources:ident, $entity:ident], ($($arg:ident: $arg_type:ty),*), ($component_name:ident: $component_type:ty) -> $result:ty {$($body:tt)*}) => {
 		pub fn $fn($($arg: $arg_type,)* world: &mut World) -> $result {
 			world
-			.get_component_vec_mut::<$component_type>()
-			.unwrap_or_else(|| panic!("System accessed an unregistered component type: {:?}", stringify!($component_type)))
-			.iter_mut()
-			.enumerate()
-			.filter_map(|(entity, $component_name)| match ($component_name) {
-				Some($component_name) => {
-					let $component_name = $component_name.downcast_mut::<$component_type>().unwrap();
-					Some((world.resources().clone(), entity, $component_name))
-				},
-				_ => None,
-			})
-			.try_for_each(|($resources, $entity, mut $component_name)| {
-				$($body)*
-			})
+				.get_component_vec_mut::<$component_type>()
+				.unwrap_or_else(|| panic!("System accessed an unregistered component type: {:?}", stringify!($component_type)))
+				.iter_mut()
+				.enumerate()
+				.filter_map(|(entity, $component_name)| match ($component_name) {
+					Some($component_name) => {
+						let $component_name = $component_name.downcast_mut::<$component_type>().unwrap();
+						Some((world.resources().clone(), entity, $component_name))
+					},
+					_ => None,
+				})
+				.try_for_each(|($resources, $entity, mut $component_name)| {
+					$($body)*
+				})
 		}
     };
 
