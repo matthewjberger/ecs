@@ -31,6 +31,14 @@ impl Default for ComponentVec {
 
 #[macro_export]
 macro_rules! component_vec {
+    () => {
+        {
+			use std::{rc::Rc, cell::RefCell};
+			use $crate::world::ComponentVec;
+            Rc::new(RefCell::new(ComponentVec::new(vec![])))
+        }
+    };
+
     ($($component:expr),*) => {
         {
 			use std::{rc::Rc, cell::RefCell};
@@ -80,29 +88,28 @@ macro_rules! izip {
 
 #[macro_export]
 macro_rules! system {
-    ($fn:tt, [$resources:ident, $entity:ident], ($($arg:ident: $arg_type:ty),*), ($component_name:ident: $component_type:ty){$($body:tt)*}) => {
-		pub fn $fn($($arg: $arg_type,)* world: &mut World) {
-			world.get_component_vec_mut::<$component_type>()
-			.iter_mut()
+	($fn:tt, [$resources:ident, $entity:ident], ($($arg:ident: $arg_type:ty),*), ($component_name:ident: $component_type:ty) -> $result:ty {$($body:tt)*}) => {
+		pub fn $fn($($arg: $arg_type,)* world: &mut World) -> $result {
+			world.get_component_vec_mut::<$component_type>().expect(r#"Component type not registered: '{$component_type}'"#).iter_mut()
 			.enumerate()
-			.filter_map(|(entity, $component_name)| match $component_name {
+			.filter_map(|(entity, $component_name)| match ($component_name) {
 				Some($component_name) => {
 					let $component_name = $component_name.downcast_mut::<$component_type>().unwrap();
 					Some((world.resources().clone(), entity, $component_name))
 				},
 				_ => None,
 			})
-			.for_each(|($resources, $entity, mut $component_name)| {
+			.try_for_each(|($resources, $entity, mut $component_name)| {
 				$($body)*
-			});
+			})
 		}
     };
 
-    ($fn:tt, [$resources:ident, $entity:ident], ($($arg:ident: $arg_type:ty),*), ($($component_name:ident: $component_type:ty),*){$($body:tt)*}) => {
-		pub fn $fn($($arg: $arg_type,)* world: &mut World) {
+    ($fn:tt, [$resources:ident, $entity:ident], ($($arg:ident: $arg_type:ty),*), ($($component_name:ident: $component_type:ty),*) -> $result:ty {$($body:tt)*}) => {
+		pub fn $fn($($arg: $arg_type,)* world: &mut World) -> $result {
 			izip!(
 				$(
-					world.get_component_vec_mut::<$component_type>().iter_mut()
+					world.get_component_vec_mut::<$component_type>().expect(r#"Component type not registered: '{$component_type}'"#).iter_mut()
 				),*
 			)
 			.enumerate()
@@ -115,9 +122,9 @@ macro_rules! system {
 				},
 				_ => None,
 			})
-			.for_each(|($resources, $entity, $(mut $component_name,)*)| {
+			.try_for_each(|($resources, $entity, $(mut $component_name,)*)| {
 				$($body)*
-			});
+			})
 		}
     }
 }
@@ -219,14 +226,20 @@ impl World {
 		})
 	}
 
-	// TODO: If no entity has been inserted into world containing a T component,
-	//       the vec will not exist and the unwrap will fail. Need to handle the unwraps
-	pub fn get_component_vec<T: 'static>(&self) -> Ref<ComponentVec> {
-		self.components.get(&TypeId::of::<T>()).unwrap().deref().borrow()
+	pub fn get_component_vec<T: 'static>(&self) -> Option<Ref<ComponentVec>> {
+		self.components
+			.get(&TypeId::of::<T>())
+			.map(|component_vec| component_vec.deref().borrow())
 	}
 
-	pub fn get_component_vec_mut<T: 'static>(&self) -> RefMut<ComponentVec> {
-		self.components.get(&TypeId::of::<T>()).unwrap().deref().borrow_mut()
+	pub fn get_component_vec_mut<T: 'static>(&self) -> Option<RefMut<ComponentVec>> {
+		self.components
+			.get(&TypeId::of::<T>())
+			.map(|component_vec| component_vec.deref().borrow_mut())
+	}
+
+	pub fn register_component<T: 'static>(&mut self) {
+		self.components.entry(TypeId::of::<T>()).or_insert(component_vec!());
 	}
 
 	pub fn entity_exists(&self, entity: Entity) -> bool {
@@ -257,17 +270,19 @@ mod tests {
 	struct Name(String);
 
 	// Translate only named entities
-	system!(translation_system, [_resources, _entity], (value: f32), (position: Position, _name: Name, _health: Health) {
+	system!(translation_system, [_resources, _entity], (value: f32), (position: Position, _name: Name, _health: Health) -> Result<()> {
 		position.x += value;
 		position.y += value;
+		Ok(())
 	});
 
 	#[derive(Debug, PartialEq)]
 	struct DeltaTime(f32);
 
 	// This runs for each entity but ensures we can access and mutate resources from systems
-	system!(resource_system, [resources, _entity], (value: f32), (_position: Position) {
+	system!(resource_system, [resources, _entity], (value: f32), (_position: Position) -> Result<()> {
 		resources.borrow_mut().insert(DeltaTime(value));
+		Ok(())
 	});
 
 	#[test]
@@ -335,7 +350,7 @@ mod tests {
 		world.add_component(entity, Health::default())?;
 		world.add_component(entity, Name("Tyrell Wellick".to_string()))?;
 
-		translation_system(10.0, &mut world);
+		translation_system(10.0, &mut world)?;
 
 		assert_eq!(world.get_component::<Position>(entity).as_deref(), Some(&Position { x: 10.0, y: 10.0 }));
 
@@ -363,7 +378,7 @@ mod tests {
 		world.add_component(entity, Position::default())?;
 
 		let value = 0.18;
-		resource_system(value, &mut world);
+		resource_system(value, &mut world)?;
 
 		assert_eq!(world.resources().borrow().get::<DeltaTime>(), Some(&DeltaTime(value)));
 
@@ -376,6 +391,26 @@ mod tests {
 		let value = 0.18;
 		world.resources.borrow_mut().insert(DeltaTime(value));
 		assert_eq!(world.resources().borrow().get::<DeltaTime>(), Some(&DeltaTime(value)));
+		Ok(())
+	}
+
+	#[test]
+	#[should_panic]
+	fn unregistered_component() {
+		World::default().get_component_vec_mut::<Position>().unwrap();
+	}
+
+	#[test]
+	fn component_registration() -> Result<()> {
+		let mut world = World::default();
+
+		assert!(world.get_component_vec_mut::<Position>().is_none());
+
+		let entity = world.create_entity();
+		world.add_component(entity, Position::default())?;
+
+		assert!(world.get_component_vec_mut::<Position>().is_some());
+
 		Ok(())
 	}
 }

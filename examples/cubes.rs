@@ -15,8 +15,8 @@ fn main() -> Result<()> {
 
 	let color_system = ColorSystem::new();
 	while window.render_with_camera(&mut arc_ball) {
-		rotation_system(0.014, &mut world);
-		color_system.run(&mut world);
+		rotation_system(0.014, &mut world)?;
+		color_system.run(&mut world)?;
 	}
 
 	Ok(())
@@ -36,8 +36,9 @@ fn create_world(window: &mut Window) -> World {
 	world
 }
 
-system!(rotation_system, [_resources, _entity], (value: f32), (node: SceneNode) {
-	node.prepend_to_local_rotation(&UnitQuaternion::from_axis_angle(&Vector3::y_axis(), value))
+system!(rotation_system, [_resources, _entity], (value: f32), (node: SceneNode) -> Result<()> {
+	node.prepend_to_local_rotation(&UnitQuaternion::from_axis_angle(&Vector3::y_axis(), value));
+	Ok(())
 });
 
 struct ColorSystem {
@@ -51,9 +52,10 @@ impl ColorSystem {
 		}
 	}
 
-	system!(run, [_resources, _entity], (self: &Self), (node: SceneNode) {
+	system!(run, [_resources, _entity], (self: &Self), (node: SceneNode) -> Result<()> {
 		let time = (SystemTime::now().duration_since(UNIX_EPOCH).unwrap() - self.start_time).as_secs_f32();
 		node.set_color(time.sin(), time.cos(), 0.5);
+		Ok(())
 	});
 }
 

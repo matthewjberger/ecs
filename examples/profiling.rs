@@ -146,10 +146,11 @@ fn profile_complex_entity_system() {
 }
 
 // Translate only named entities
-system!(translation_system, [_resources, _entity], (), (position: Position, name: Name, health: Health) {
+system!(translation_system, [_resources, _entity], (), (position: Position, name: Name, health: Health) -> Result<()> {
 	position.0 = 10.0;
 	health.0 = 4;
 	name.0 = "Renamed".to_string();
+	Ok(())
 });
 
 #[macro_export]
