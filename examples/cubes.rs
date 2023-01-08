@@ -30,14 +30,7 @@ fn create_world(window: &mut Window) -> World {
 		let mut node = window.add_cube(1.0, 1.0, 1.0);
 		node.set_color(0.0, 1.0, 0.0);
 		node.set_visible(true);
-		node.set_local_translation(
-			[
-				rng.gen_range(-5.0..5.0),
-				rng.gen_range(-5.0..5.0),
-				rng.gen_range(-5.0..5.0),
-			]
-			.into(),
-		);
+		node.set_local_translation([rng.gen_range(-5.0..5.0), rng.gen_range(-5.0..5.0), rng.gen_range(-5.0..5.0)].into());
 		world.add_component(entity, node).unwrap();
 	}
 	world

@@ -36,11 +36,7 @@ fn profile_insertion() {
 		let results = profile_n!(100, world.create_entities(1_000_000));
 		results
 	});
-	let average_duration = results
-		.iter()
-		.map(|(_entities, duration)| duration.as_millis() as f32)
-		.sum::<f32>()
-		/ results.len() as f32;
+	let average_duration = results.iter().map(|(_entities, duration)| duration.as_millis() as f32).sum::<f32>() / results.len() as f32;
 	println!(
 		"  - Creating 1 million entities: {}ms (average of {} runs).",
 		average_duration,
@@ -124,9 +120,7 @@ fn profile_complex_entities() {
 	for entity in entities.iter() {
 		world.add_component(*entity, Position::default()).unwrap();
 		world.add_component(*entity, Health::default()).unwrap();
-		world
-			.add_component(*entity, Name("Test Component".to_string()))
-			.unwrap();
+		world.add_component(*entity, Name("Test Component".to_string())).unwrap();
 	}
 	let (_, duration) = profile!({
 		for entity in entities.iter() {
@@ -145,9 +139,7 @@ fn profile_complex_entity_system() {
 	for entity in entities.iter() {
 		world.add_component(*entity, Position::default()).unwrap();
 		world.add_component(*entity, Health::default()).unwrap();
-		world
-			.add_component(*entity, Name("Test Component".to_string()))
-			.unwrap();
+		world.add_component(*entity, Name("Test Component".to_string())).unwrap();
 	}
 	let (_, duration) = profile!(translation_system(&mut world));
 	println!("  - Updating 1 million complex entities with a system: {:?}.", duration);

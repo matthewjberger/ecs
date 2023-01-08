@@ -199,9 +199,7 @@ impl HandleAllocator {
 	}
 
 	pub fn is_allocated(&self, handle: &Handle) -> bool {
-		self.handle_exists(handle)
-			&& self.allocations[handle.index].generation == handle.generation
-			&& self.allocations[handle.index].allocated
+		self.handle_exists(handle) && self.allocations[handle.index].generation == handle.generation && self.allocations[handle.index].allocated
 	}
 
 	pub fn handle_exists(&self, handle: &Handle) -> bool {

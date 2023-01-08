@@ -80,8 +80,8 @@ macro_rules! izip {
 
 #[macro_export]
 macro_rules! system {
-    ($name:tt, [$resources:ident, $entity:ident], ($($arg:ident: $arg_type:ty),*), ($component_name:ident: $component_type:ty){$($body:tt)*}) => {
-		pub fn $name($($arg: $arg_type,)* world: &mut World) {
+    ($fn:tt, [$resources:ident, $entity:ident], ($($arg:ident: $arg_type:ty),*), ($component_name:ident: $component_type:ty){$($body:tt)*}) => {
+		pub fn $fn($($arg: $arg_type,)* world: &mut World) {
 			world.get_component_vec_mut::<$component_type>()
 			.iter_mut()
 			.enumerate()
@@ -98,8 +98,8 @@ macro_rules! system {
 		}
     };
 
-    ($name:tt, [$resources:ident, $entity:ident], ($($arg:ident: $arg_type:ty),*), ($($component_name:ident: $component_type:ty),*){$($body:tt)*}) => {
-		pub fn $name($($arg: $arg_type,)* world: &mut World) {
+    ($fn:tt, [$resources:ident, $entity:ident], ($($arg:ident: $arg_type:ty),*), ($($component_name:ident: $component_type:ty),*){$($body:tt)*}) => {
+		pub fn $fn($($arg: $arg_type,)* world: &mut World) {
 			izip!(
 				$(
 					world.get_component_vec_mut::<$component_type>().iter_mut()
@@ -199,9 +199,7 @@ impl World {
 				return None;
 			}
 			Some(Ref::map(component_vec.borrow(), |t| {
-				t.get(entity)
-					.and_then(|component| component.downcast_ref::<T>())
-					.unwrap()
+				t.get(entity).and_then(|component| component.downcast_ref::<T>()).unwrap()
 			}))
 		})
 	}
@@ -292,14 +290,8 @@ mod tests {
 		world.add_component(entity, Position::default())?;
 		world.add_component(entity, Health { value: 10 })?;
 		world.get_component_mut::<Health>(entity).unwrap().value = 0;
-		assert_eq!(
-			world.get_component::<Position>(entity).as_deref(),
-			Some(&Position::default())
-		);
-		assert_eq!(
-			world.get_component::<Health>(entity).as_deref(),
-			Some(&Health { value: 0 })
-		);
+		assert_eq!(world.get_component::<Position>(entity).as_deref(), Some(&Position::default()));
+		assert_eq!(world.get_component::<Health>(entity).as_deref(), Some(&Health { value: 0 }));
 		Ok(())
 	}
 
@@ -321,10 +313,7 @@ mod tests {
 		let entity = world.create_entity();
 		world.add_component(entity, Position::default())?;
 		assert!(world.has_component::<Position>(entity));
-		assert_eq!(
-			world.get_component::<Position>(entity).as_deref(),
-			Some(&Position::default())
-		);
+		assert_eq!(world.get_component::<Position>(entity).as_deref(), Some(&Position::default()));
 		Ok(())
 	}
 
@@ -334,10 +323,7 @@ mod tests {
 		let entity = world.create_entity();
 		world.add_component(entity, Position::default())?;
 		world.get_component_mut::<Position>(entity).unwrap().deref_mut().x = 10.0;
-		assert_eq!(
-			world.get_component::<Position>(entity).as_deref(),
-			Some(&Position { x: 10.0, y: 0.0 })
-		);
+		assert_eq!(world.get_component::<Position>(entity).as_deref(), Some(&Position { x: 10.0, y: 0.0 }));
 		Ok(())
 	}
 
@@ -351,10 +337,7 @@ mod tests {
 
 		translation_system(10.0, &mut world);
 
-		assert_eq!(
-			world.get_component::<Position>(entity).as_deref(),
-			Some(&Position { x: 10.0, y: 10.0 })
-		);
+		assert_eq!(world.get_component::<Position>(entity).as_deref(), Some(&Position { x: 10.0, y: 10.0 }));
 
 		Ok(())
 	}
@@ -365,9 +348,7 @@ mod tests {
 		let entity = entity_allocator.allocate();
 
 		let components = component_vec!();
-		components
-			.borrow_mut()
-			.insert(entity, Box::new(Name("Elliot Alderson".to_string())))?;
+		components.borrow_mut().insert(entity, Box::new(Name("Elliot Alderson".to_string())))?;
 
 		assert!(entity_has_component(entity, &components));
 
