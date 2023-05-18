@@ -154,12 +154,13 @@ impl<T> DerefMut for Slot<T> {
 	}
 }
 
+#[derive(Default, Serialize, Deserialize)]
 pub struct Allocation {
 	allocated: bool,
 	generation: usize,
 }
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct HandleAllocator {
 	allocations: Vec<Allocation>,
 	available_handles: Vec<usize>,
