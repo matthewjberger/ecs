@@ -10,6 +10,7 @@ categories = ["simulation"]
 readme = "README.md"
 
 [dependencies]
+serde = { version = "1.0.163", features = ["derive"] }
 
 [dev-dependencies]
 anyhow = "1.0.68"

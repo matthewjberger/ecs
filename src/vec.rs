@@ -1,5 +1,6 @@
 use self::error::GenerationError;
 use crate::error::Result;
+use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
 
 pub mod error {
@@ -50,6 +51,7 @@ impl Handle {
 	}
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct GenerationalVec<T> {
 	elements: SlotVec<T>,
 }
@@ -122,6 +124,7 @@ impl<T> DerefMut for GenerationalVec<T> {
 	}
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Slot<T> {
 	value: T,
 	generation: usize,
