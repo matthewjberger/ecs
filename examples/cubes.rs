@@ -3,7 +3,7 @@ use kiss3d::{camera::ArcBall, light::Light, scene::SceneNode, window::Window};
 use nalgebra::{Point3, UnitQuaternion, Vector3};
 use parsecs::{system, world::World};
 use rand::Rng;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 fn main() -> Result<()> {
 	let mut window = Window::new("Entity-Component-System Architecture Demo");
@@ -11,11 +11,19 @@ fn main() -> Result<()> {
 
 	let mut world = create_world(&mut window);
 
-	let mut arc_ball = create_camera();
+	let mut arc_ball = {
+		let eye = Point3::new(10.0, 10.0, 10.0);
+		let at = Point3::origin();
+		ArcBall::new(eye, at)
+	};
 
+	let start = Instant::now();
 	let color_system = ColorSystem::new();
 	while window.render_with_camera(&mut arc_ball) {
 		rotation_system(0.014, &mut world)?;
+		let now = Instant::now();
+		let elapsed = now.duration_since(start).as_secs_f32();
+		scaling_system(elapsed, &mut world)?;
 		color_system.run(&mut world)?;
 	}
 
@@ -36,11 +44,35 @@ fn create_world(window: &mut Window) -> World {
 	world
 }
 
+// Using the `system!` macro
 system!(rotation_system, [_resources, _entity], (value: f32), (node: SceneNode) -> Result<()> {
 	node.prepend_to_local_rotation(&UnitQuaternion::from_axis_angle(&Vector3::y_axis(), value));
 	Ok(())
 });
 
+// Using a plain function
+pub fn scaling_system(value: f32, world: &mut World) -> Result<()> {
+	world
+		.get_component_vec_mut::<SceneNode>()
+		.unwrap_or_else(|| panic!("System accessed an unregistered component type: {:?}", stringify!(SceneNode)))
+		.iter_mut()
+		.enumerate()
+		.filter_map(|(entity, node)| match node {
+			Some(node) => {
+				let node = node.downcast_mut::<SceneNode>().unwrap();
+				Some((world.resources().clone(), entity, node))
+			},
+			_ => None,
+		})
+		.try_for_each(|(_resources, _entity, node)| {
+			let factor = value.sin().max(0.2);
+			node.set_local_scale(factor, factor, factor);
+			Ok(())
+		})
+}
+
+// Encapsulating the system in a struct
+// to persist system state across calls
 struct ColorSystem {
 	start_time: Duration,
 }
@@ -57,10 +89,4 @@ impl ColorSystem {
 		node.set_color(time.sin(), time.cos(), 0.5);
 		Ok(())
 	});
-}
-
-fn create_camera() -> ArcBall {
-	let eye = Point3::new(10.0, 10.0, 10.0);
-	let at = Point3::origin();
-	ArcBall::new(eye, at)
 }

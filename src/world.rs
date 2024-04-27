@@ -268,6 +268,7 @@ mod tests {
 		value: u8,
 	}
 
+	#[allow(dead_code)]
 	struct Name(String);
 
 	// Translate only named entities
